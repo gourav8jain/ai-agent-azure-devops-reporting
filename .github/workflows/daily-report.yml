@@ -25,8 +25,10 @@ jobs:
           
       - name: Install dependencies
         run: |
+          echo "📦 Installing Python dependencies..."
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          echo "✅ Dependencies installed successfully"
           
       - name: Debug Environment
         run: |
@@ -36,6 +38,14 @@ jobs:
           echo "🕐 Workflow triggered at: $(date)"
           echo "📊 Repository: ${{ github.repository }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
+          echo "🐍 Python version: $(python --version)"
+          echo "📦 Installed packages:"
+          pip list
+          
+      - name: Validate Configuration
+        run: |
+          echo "🔧 Validating configuration..."
+          python3 -c "from config import Config; print('✅ Config imported successfully'); print('Validating config...'); result = Config.validate_config(); print('Validation result:', result)"
           
       - name: Generate Sprint Report
         env:
@@ -45,6 +55,8 @@ jobs:
           echo "🔍 Extracting latest sprint data from Azure DevOps..."
           echo "📅 Current date: $(date)"
           echo "🌍 Timezone: $(date +%Z)"
+          echo "🏢 Azure DevOps Org: $AZURE_DEVOPS_ORG"
+          echo "🔑 PAT Status: ${AZURE_DEVOPS_PAT:0:10}..."
           python3 get_sprint_count.py
           
       - name: Generate HTML Report
@@ -60,6 +72,10 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           echo "📧 Sending daily report via email..."
+          echo "📧 From: $EMAIL_FROM"
+          echo "📧 To: $EMAIL_TO"
+          echo "📧 SMTP User: $SMTP_USERNAME"
+          echo "🔑 Password Status: ${SMTP_PASSWORD:0:10}..."
           python3 send_email_direct.py
           
       - name: Upload Report Artifacts
@@ -79,3 +95,4 @@ jobs:
           echo "📊 Report generated and sent via email"
           echo "🕐 Execution completed at: $(date)"
           echo "🎯 Next scheduled run: Tomorrow at 5:00 PM IST (11:30 AM UTC)"
+          echo "🚀 GitHub Actions workflow executed successfully!"
