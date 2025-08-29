@@ -1,16 +1,15 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 class Config:
     """Centralized configuration for Azure DevOps and email settings"""
     
     # Core Azure DevOps Configuration
+    # Priority: GitHub Secrets > Environment Variables > Default Values
     AZURE_DEVOPS_ORG = os.getenv('AZURE_DEVOPS_ORG', 'delhivery')
     AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', '')
     
     # Email Configuration
+    # Priority: GitHub Secrets > Environment Variables > Default Values
     EMAIL_FROM = os.getenv('EMAIL_FROM', '')
     EMAIL_TO = os.getenv('EMAIL_TO', '')
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
@@ -22,13 +21,31 @@ class Config:
     SPRINT_DISCOVERY = {
         'enabled': True,
         'auto_discover': True,
-        'date_range_days': 30,
+        'date_range_days': 33, # Adjusted to cover the 2-week period
         'include_completed_sprints': False,
         'filter_by_tags': ['HRMS - Payout'],
         'exclude_projects': [],
         'include_projects': ['NEWTON', 'Partner Management Tool']
     }
-    
+
+    # Sprint Period (Manual Override for specific sprint)
+    SPRINT_PERIOD = {
+        'start_date': '19-Aug-2025',
+        'end_date': '01-Sep-2025'
+    }
+
+    # Project Specific Configuration
+    PROJECTS = {
+        'NEWTON': {
+            'tags': ['HRMS - Payout'],
+            'iteration_path': 'NEWTON\\NEWTON Q2 19-Aug-2025 - 01-Sep-2025'
+        },
+        'Partner Management Tool': {
+            'tags': [],
+            'iteration_path': 'Partner Management Tool\\PMT Q2 19-Aug-2025 - 01-Sep-2025'
+        }
+    }
+
     # State Categorization Configuration
     STATE_CATEGORIES = {
         'To-Do': ['Open', 'TO DO', 'New', 'REQ-Review'],
@@ -37,27 +54,6 @@ class Config:
         'Release Pending': ['QA Reviewed', 'SIGNOFF'],
         'Released': ['DONE', 'Done', 'Closed', 'Resolved', 'Completed'],
         'Drop': ['Drop']
-    }
-    
-    # Sprint Period Configuration
-    SPRINT_PERIOD = {
-        'start_date': '19-Aug-2025',
-        'end_date': '01-Sep-2025',
-        'format': '%d-%b-%Y'
-    }
-    
-    # Project Configuration
-    PROJECTS = {
-        'NEWTON': {
-            'name': 'NEWTON',
-            'tags': ['HRMS - Payout'],
-            'iteration_path': 'NEWTON\\NEWTON Q2 19-Aug-2025 - 01-Sep-2025'
-        },
-        'PMT': {
-            'name': 'Partner Management Tool',
-            'tags': [],
-            'iteration_path': 'Partner Management Tool\\PMT Q2 19-Aug-2025 - 01-Sep-2025'
-        }
     }
     
     @classmethod
@@ -78,7 +74,11 @@ class Config:
         
         if missing_vars:
             print(f"⚠️ Missing required environment variables: {', '.join(missing_vars)}")
-            print("Please set these in your .env file")
+            print("Please set these in your GitHub repository secrets:")
+            print("   Go to: Settings → Secrets and variables → Actions")
+            print("   Add these secrets:")
+            for var in missing_vars:
+                print(f"   - {var}")
             return False
         
         return True
@@ -86,10 +86,7 @@ class Config:
     @classmethod
     def get_project_config(cls, project_name):
         """Get configuration for a specific project"""
-        for key, config in cls.PROJECTS.items():
-            if key in project_name or config['name'] in project_name:
-                return config
-        return None
+        return cls.PROJECTS.get(project_name)
     
     @classmethod
     def get_state_category(cls, state):

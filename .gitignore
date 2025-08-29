@@ -8,6 +8,10 @@ azure_devops_credentials.json
 
 # Generated HTML reports (keep source code, exclude generated reports)
 sprint_report_*.html
+compact_sprint_report_*.html
+
+# Generated data files
+sprint_count_*.json
 
 # Email content files
 email_content_*.txt

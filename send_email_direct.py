@@ -3,10 +3,9 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Environment variables are loaded from GitHub Secrets in production
+# or from local environment variables for development
 
 def send_email_directly(html_filename, html_content):
     """Send email directly using Gmail credentials from environment variables"""
