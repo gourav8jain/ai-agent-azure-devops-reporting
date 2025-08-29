@@ -3,6 +3,10 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 def send_email_directly(html_filename, html_content):
     """Send email directly using Gmail credentials from environment variables"""
@@ -99,8 +103,11 @@ def main():
     print("📧 Direct Email Sender with Environment Variables")
     print("=" * 60)
     
-    # Find the most recent HTML report
-    html_files = [f for f in os.listdir('.') if f.startswith('sprint_report_') and f.endswith('.html')]
+    # Find the most recent HTML report (prefer compact version)
+    html_files = [f for f in os.listdir('.') if f.startswith('compact_sprint_report_') and f.endswith('.html')]
+    if not html_files:
+        # Fallback to regular sprint reports
+        html_files = [f for f in os.listdir('.') if f.startswith('sprint_report_') and f.endswith('.html')]
     if not html_files:
         print("❌ No HTML reports found. Generate a report first using generate_html_report.py")
         return
