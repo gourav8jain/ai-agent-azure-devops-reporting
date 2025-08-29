@@ -43,7 +43,7 @@ The workflow is running but the repository secrets are not properly configured o
 #### **Issue 2: "Workflow not running automatically"**
 
 #### **Symptoms:**
-- Workflow doesn't run at scheduled time (5:00 PM IST)
+- Workflow doesn't run at scheduled time (10:30 AM IST)
 - No automatic execution
 
 #### **Solutions:**

@@ -35,8 +35,8 @@ This guide will help you set up GitHub Actions to run your Azure DevOps AI Agent
 The workflow file should be at: `.github/workflows/daily-report.yml`
 
 ### **Workflow Features:**
-- **Schedule**: Daily at 5:00 PM IST (11:30 AM UTC)
-- **Backup**: Daily at 6:00 PM IST (12:30 PM UTC)
+- **Schedule**: Daily at 10:30 AM IST (5:00 AM UTC)
+- **Backup**: Daily at 11:00 AM IST (5:30 AM UTC)
 - **Manual Trigger**: Click "Run workflow" anytime
 - **Push Trigger**: Runs on every main branch push
 
@@ -120,8 +120,8 @@ Generated reports are saved as artifacts:
 ## 📊 **Monitoring and Alerts**
 
 ### **Daily Reports:**
-- **Time**: 5:00 PM IST (11:30 AM UTC)
-- **Backup**: 6:00 PM IST (12:30 PM UTC)
+- **Time**: 10:30 AM IST (5:00 AM UTC)
+- **Backup**: 11:00 AM IST (5:30 AM UTC)
 - **Email**: Sent automatically to configured recipients
 - **Status**: Available in GitHub Actions logs
 
@@ -147,7 +147,7 @@ Generated reports are saved as artifacts:
 
 ## 🎯 **Expected Results**
 
-### **Daily at 5:00 PM IST:**
+### **Daily at 10:30 AM IST:**
 1. **Azure DevOps**: Extracts latest sprint data
 2. **Report Generation**: Creates professional HTML report
 3. **Email Delivery**: Sends report via Gmail SMTP
@@ -190,10 +190,10 @@ Generated reports are saved as artifacts:
 - [ ] Email received successfully
 - [ ] Azure DevOps data extracted correctly
 - [ ] Reports generated and uploaded
-- [ ] Scheduled runs working at 5:00 PM IST
+- [ ] Scheduled runs working at 10:30 AM IST
 
 ---
 
 **Need help?** Check the workflow logs in the Actions tab for detailed error messages and debugging information.
 
-**Your Azure DevOps AI Agent will now run automatically every day at 5:00 PM IST via GitHub Actions!** 🚀✨
+**Your Azure DevOps AI Agent will now run automatically every day at 10:30 AM IST via GitHub Actions!** 🚀✨
