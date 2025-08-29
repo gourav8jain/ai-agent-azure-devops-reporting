@@ -72,8 +72,9 @@ pip install -r requirements.txt
 
 ### 3. **Configure Environment Variables**
 ```bash
-cp env.example .env
-# Edit .env with your credentials
+cp .env.example .env
+# The .env.example file already contains the correct values
+# No editing needed - just copy and use!
 ```
 
 ### 4. **Run the Complete Workflow**
@@ -93,16 +94,19 @@ python3 send_email_direct.py
 ### **Environment Variables (.env)**
 ```bash
 # Azure DevOps Configuration
-AZURE_DEVOPS_ORG=your_organization_name
-AZURE_DEVOPS_PAT=your_personal_access_token
+AZURE_DEVOPS_ORG=delhivery
+AZURE_DEVOPS_PAT=YOUR_AZURE_DEVOPS_PAT_HERE
 
 # Email Configuration
-EMAIL_FROM=your_email@gmail.com
-EMAIL_TO=recipient_email@gmail.com
+EMAIL_FROM=gourav8jain@gmail.com
+EMAIL_TO=gourav8jain@gmail.com
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_gmail_app_password
+SMTP_USERNAME=gourav8jain@gmail.com
+SMTP_PASSWORD=YOUR_GMAIL_APP_PASSWORD_HERE
+
+# The .env.example file contains placeholder values
+# Replace placeholders with your actual credentials, then copy: cp .env.example .env
 ```
 
 ### **Project Configuration (config.py)**
