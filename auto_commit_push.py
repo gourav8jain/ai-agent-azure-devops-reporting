@@ -2,6 +2,7 @@
 """
 Auto Commit and Push Script
 Automatically commits and pushes changes after successful execution
+Only commits essential source code and configuration files
 """
 
 import subprocess
@@ -38,6 +39,59 @@ def get_git_status():
     except:
         return ""
 
+def should_commit_file(file_path):
+    """Determine if a file should be committed"""
+    # Essential files to always commit
+    essential_files = {
+        'config.py',
+        'get_sprint_count.py',
+        'generate_html_report_compact.py',
+        'send_email_direct.py',
+        'auto_commit_push.py',
+        'run_complete_workflow.py',
+        'run_and_commit.sh',
+        'requirements.txt',
+        'README.md',
+        'AUTO_COMMIT_GUIDE.md',
+        '.gitignore',
+        '.github/workflows/daily-report.yml'
+    }
+    
+    # Files to never commit
+    never_commit = {
+        '.env',
+        '.env.local',
+        '.env.*.local',
+        'venv/',
+        '__pycache__/',
+        '*.pyc',
+        '*.pyo',
+        '*.pyd',
+        '*.log',
+        '*.tmp',
+        '*.temp'
+    }
+    
+    # Check if it's an essential file
+    if file_path in essential_files:
+        return True
+    
+    # Check if it's a file to never commit
+    for pattern in never_commit:
+        if pattern in file_path:
+            return False
+    
+    # Check if it's a generated file
+    if any(pattern in file_path for pattern in ['sprint_count_', 'compact_sprint_report_', 'sprint_report_']):
+        return False
+    
+    # Check if it's an email or temporary file
+    if any(pattern in file_path for pattern in ['email_content_', 'gmail_', '*.eml', '*.txt']):
+        return False
+    
+    # Default: commit if it's a source code file
+    return file_path.endswith(('.py', '.md', '.yml', '.yaml', '.sh', '.txt', '.gitignore'))
+
 def auto_commit_push():
     """Automatically commit and push changes"""
     print("🚀 Auto Commit and Push Script")
@@ -54,17 +108,38 @@ def auto_commit_push():
         print("✅ No changes to commit")
         return True
     
-    print(f"📝 Changes detected:")
+    # Filter files to commit
+    files_to_commit = []
+    files_to_ignore = []
+    
     for line in status.split('\n'):
         if line.strip():
-            print(f"   {line}")
+            file_path = line[3:].strip()  # Remove status indicators
+            if should_commit_file(file_path):
+                files_to_commit.append(file_path)
+            else:
+                files_to_ignore.append(file_path)
+    
+    if files_to_ignore:
+        print(f"📝 Ignoring generated/temporary files:")
+        for file_path in files_to_ignore:
+            print(f"   ❌ {file_path}")
+    
+    if not files_to_commit:
+        print("✅ No essential files to commit")
+        return True
+    
+    print(f"📝 Essential files to commit:")
+    for file_path in files_to_commit:
+        print(f"   ✅ {file_path}")
     
     # Get current timestamp
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
-    # Add all changes
-    if not run_command("git add .", "Adding all changes"):
-        return False
+    # Add only essential files
+    for file_path in files_to_commit:
+        if not run_command(f"git add {file_path}", f"Adding {file_path}"):
+            return False
     
     # Commit changes
     commit_message = f"🤖 Auto-commit: {timestamp} - Azure DevOps report execution"
@@ -77,6 +152,8 @@ def auto_commit_push():
     
     print(f"\n🎉 Auto commit and push completed successfully!")
     print(f"📅 Timestamp: {timestamp}")
+    print(f"📁 Files committed: {len(files_to_commit)}")
+    print(f"🚫 Files ignored: {len(files_to_ignore)}")
     return True
 
 def main():
