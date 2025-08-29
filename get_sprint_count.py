@@ -166,7 +166,7 @@ def main():
     all_results = {}
     
     for project_key, project_config in Config.PROJECTS.items():
-        project_name = project_config['name']
+        project_name = project_key
         tags = project_config['tags']
         
         print(f"\n🏢 Processing project: {project_name}")
