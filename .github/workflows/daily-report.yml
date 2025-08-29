@@ -2,10 +2,10 @@ name: Daily Sprint Report
 
 on:
   schedule:
-    # 5:00 PM IST = 11:30 AM UTC (IST is UTC+5:30)
-    # Alternative: 6:00 PM IST = 12:30 PM UTC for better reliability
-    - cron: '30 11 * * *'  # 5:00 PM IST
-    - cron: '30 12 * * *'  # 6:00 PM IST (backup time)
+    # 10:30 AM IST = 5:00 AM UTC (IST is UTC+5:30)
+    - cron: '0 5 * * *'  # 10:30 AM IST
+    # Alternative: 11:00 AM IST = 5:30 AM UTC for better reliability
+    - cron: '30 5 * * *'  # 11:00 AM IST (backup time)
   workflow_dispatch: # Allow manual trigger
   push:
     branches: [ main ] # Also run on main branch pushes for testing
@@ -117,5 +117,5 @@ jobs:
           echo "🌍 Timezone: $(date +%Z)"
           echo "📊 Report generated and sent via email"
           echo "🕐 Execution completed at: $(date)"
-          echo "🎯 Next scheduled run: Tomorrow at 5:00 PM IST (11:30 AM UTC)"
+          echo "🎯 Next scheduled run: Tomorrow at 10:30 AM IST (5:00 AM UTC)"
           echo "🚀 GitHub Actions workflow executed successfully!"
