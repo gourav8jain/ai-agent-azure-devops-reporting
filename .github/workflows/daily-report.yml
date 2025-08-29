@@ -1,0 +1,63 @@
+name: Daily Sprint Report
+
+on:
+  schedule:
+    # 10:30 AM IST = 5:00 AM UTC (IST is UTC+5:30)
+    - cron: '0 5 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-and-send-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Generate Sprint Report
+        env:
+          AZURE_DEVOPS_ORG: ${{ secrets.AZURE_DEVOPS_ORG }}
+          AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+        run: |
+          echo "🔍 Extracting sprint data from Azure DevOps..."
+          python3 get_sprint_count.py
+          
+      - name: Generate HTML Report
+        run: |
+          echo "🎨 Generating compact HTML report..."
+          python3 generate_html_report_compact.py
+          
+      - name: Send Email Report
+        env:
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          echo "📧 Sending report via email..."
+          python3 send_email_direct.py
+          
+      - name: Upload Report Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sprint-report-$(date +%Y%m%d)
+          path: |
+            *.html
+            *.json
+          retention-days: 7
+          
+      - name: Success Notification
+        run: |
+          echo "✅ Daily sprint report completed successfully!"
+          echo "📅 Date: $(date)"
+          echo "📊 Report generated and sent via email"
