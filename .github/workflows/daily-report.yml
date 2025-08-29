@@ -14,6 +14,15 @@ jobs:
   generate-and-send-report:
     runs-on: ubuntu-latest
     
+    # Set environment variables for ALL steps at job level
+    env:
+      AZURE_DEVOPS_ORG: ${{ secrets.AZURE_DEVOPS_ORG }}
+      AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,6 +50,28 @@ jobs:
           echo "🐍 Python version: $(python --version)"
           echo "📦 Installed packages:"
           pip list
+          echo ""
+          echo "🔑 Environment Variables Status:"
+          echo "   AZURE_DEVOPS_ORG: ${AZURE_DEVOPS_ORG:0:10}..."
+          echo "   AZURE_DEVOPS_PAT: ${AZURE_DEVOPS_PAT:0:10}..."
+          echo "   EMAIL_FROM: ${EMAIL_FROM:0:10}..."
+          echo "   EMAIL_TO: ${EMAIL_TO:0:10}..."
+          echo "   SMTP_USERNAME: ${SMTP_USERNAME:0:10}..."
+          echo "   SMTP_PASSWORD: ${SMTP_PASSWORD:0:10}..."
+          
+      - name: Debug Environment Variables for Validation
+        run: |
+          echo "🔧 Pre-Validation Environment Check:"
+          echo "   Checking if all required environment variables are set..."
+          echo ""
+          echo "   AZURE_DEVOPS_ORG: ${AZURE_DEVOPS_ORG:+'✅ Set'}${AZURE_DEVOPS_ORG:-'❌ Not set'}"
+          echo "   AZURE_DEVOPS_PAT: ${AZURE_DEVOPS_PAT:+'✅ Set'}${AZURE_DEVOPS_PAT:-'❌ Not set'}"
+          echo "   EMAIL_FROM: ${EMAIL_FROM:+'✅ Set'}${EMAIL_FROM:-'❌ Not set'}"
+          echo "   EMAIL_TO: ${EMAIL_TO:+'✅ Set'}${EMAIL_TO:-'❌ Not set'}"
+          echo "   SMTP_USERNAME: ${SMTP_USERNAME:+'✅ Set'}${SMTP_USERNAME:-'❌ Not set'}"
+          echo "   SMTP_PASSWORD: ${SMTP_PASSWORD:+'✅ Set'}${SMTP_PASSWORD:-'❌ Not set'}"
+          echo ""
+          echo "   Total set: $(echo "$AZURE_DEVOPS_ORG$AZURE_DEVOPS_PAT$EMAIL_FROM$EMAIL_TO$SMTP_USERNAME$SMTP_PASSWORD" | grep -o . | wc -l)/6"
           
       - name: Validate Configuration
         run: |
@@ -48,9 +79,6 @@ jobs:
           python3 -c "from config import Config; print('✅ Config imported successfully'); print('Validating config...'); result = Config.validate_config(); print('Validation result:', result)"
           
       - name: Generate Sprint Report
-        env:
-          AZURE_DEVOPS_ORG: ${{ secrets.AZURE_DEVOPS_ORG }}
-          AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |
           echo "🔍 Extracting latest sprint data from Azure DevOps..."
           echo "📅 Current date: $(date)"
@@ -65,11 +93,6 @@ jobs:
           python3 generate_html_report_compact.py
           
       - name: Send Email Report
-        env:
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           echo "📧 Sending daily report via email..."
           echo "📧 From: $EMAIL_FROM"
