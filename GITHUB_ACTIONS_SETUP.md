@@ -48,23 +48,29 @@ The workflow file is already created at:
 ```
 
 ### 4. **Schedule Configuration**
-The workflow runs daily at **10:30 AM IST** (5:00 AM UTC):
+The workflow runs daily at **5:00 PM IST (11:30 AM UTC)**:
 
 ```yaml
 on:
   schedule:
-    - cron: '0 5 * * *'  # 5:00 AM UTC = 10:30 AM IST
+    - cron: '30 11 * * *'  # 11:30 AM UTC = 5:00 PM IST
 ```
 
+**Why 5 PM IST?**
+- ✅ **Latest Data**: Captures end-of-day progress
+- ✅ **Team Availability**: Most team members are active
+- ✅ **Daily Summary**: Perfect timing for daily standup preparation
+- ✅ **Testing Friendly**: Easy to monitor during work hours
+
 **Cron Format Explanation:**
-- `0` - Minute (0-59)
-- `5` - Hour (0-23) in UTC
+- `30` - Minute (0-59)
+- `11` - Hour (0-23) in UTC
 - `*` - Day of month (1-31)
 - `*` - Month (1-12)
 - `*` - Day of week (0-6, Sunday=0)
 
 ### 5. **Manual Trigger**
-You can also run the workflow manually:
+You can also run the workflow manually for testing:
 1. Go to **Actions** tab
 2. Click on **Daily Sprint Report**
 3. Click **Run workflow** button
@@ -98,17 +104,18 @@ Convert your desired time to UTC:
 | 9:00 AM  | 3:30 AM  | `30 3 * * *`    |
 | 10:30 AM | 5:00 AM  | `0 5 * * *`     |
 | 2:00 PM  | 8:30 AM  | `30 8 * * *`    |
+| **5:00 PM** | **11:30 AM** | **`30 11 * * *`** |
 | 6:00 PM  | 12:30 PM | `30 12 * * *`   |
 
 ## 📊 Workflow Execution
 
 ### **What Happens Each Day:**
-1. **5:00 AM UTC (10:30 AM IST)**: Workflow automatically starts
+1. **11:30 AM UTC (5:00 PM IST)**: Workflow automatically starts
 2. **Checkout**: Downloads latest code
 3. **Setup**: Installs Python and dependencies
-4. **Extract Data**: Connects to Azure DevOps and gets sprint data
-5. **Generate Report**: Creates compact HTML report
-6. **Send Email**: Delivers report via email
+4. **Extract Data**: Connects to Azure DevOps and gets **latest daily data**
+5. **Generate Report**: Creates compact HTML report with **fresh information**
+6. **Send Email**: Delivers **daily updated report** via email
 7. **Upload Artifacts**: Saves reports for 7 days
 8. **Success Notification**: Logs completion status
 

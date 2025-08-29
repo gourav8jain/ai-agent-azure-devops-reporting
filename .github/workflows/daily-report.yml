@@ -2,8 +2,8 @@ name: Daily Sprint Report
 
 on:
   schedule:
-    # 10:30 AM IST = 5:00 AM UTC (IST is UTC+5:30)
-    - cron: '0 5 * * *'
+    # 5:00 PM IST = 11:30 AM UTC (IST is UTC+5:30)
+    - cron: '30 11 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -29,12 +29,14 @@ jobs:
           AZURE_DEVOPS_ORG: ${{ secrets.AZURE_DEVOPS_ORG }}
           AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |
-          echo "🔍 Extracting sprint data from Azure DevOps..."
+          echo "🔍 Extracting latest sprint data from Azure DevOps..."
+          echo "📅 Current date: $(date)"
+          echo "🌍 Timezone: $(date +%Z)"
           python3 get_sprint_count.py
           
       - name: Generate HTML Report
         run: |
-          echo "🎨 Generating compact HTML report..."
+          echo "🎨 Generating compact HTML report with latest data..."
           python3 generate_html_report_compact.py
           
       - name: Send Email Report
@@ -44,13 +46,13 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
-          echo "📧 Sending report via email..."
+          echo "📧 Sending daily report via email..."
           python3 send_email_direct.py
           
       - name: Upload Report Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: sprint-report-$(date +%Y%m%d)
+          name: daily-sprint-report-$(date +%Y%m%d-%H%M)
           path: |
             *.html
             *.json
@@ -60,4 +62,6 @@ jobs:
         run: |
           echo "✅ Daily sprint report completed successfully!"
           echo "📅 Date: $(date)"
+          echo "🌍 Timezone: $(date +%Z)"
           echo "📊 Report generated and sent via email"
+          echo "🕐 Execution completed at: $(date)"
