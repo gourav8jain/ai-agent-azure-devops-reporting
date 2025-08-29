@@ -72,28 +72,50 @@ class Config:
             'SMTP_PASSWORD'
         ]
         
+        # Check if we're running in GitHub Actions
+        is_github_actions = os.getenv('GITHUB_ACTIONS') == 'true'
+        
+        print(f"🔧 Configuration Validation:")
+        print(f"   Environment: {'GitHub Actions' if is_github_actions else 'Local Development'}")
+        print(f"   .env file loaded: {os.path.exists('.env')}")
+        
         missing_vars = []
         for var in required_vars:
-            if not getattr(cls, var):
+            value = getattr(cls, var)
+            if not value or value.strip() == '':
                 missing_vars.append(var)
+                print(f"   ❌ {var}: Not set or empty")
+            else:
+                # Show first 10 characters for security
+                display_value = f"{value[:10]}..." if len(value) > 10 else value
+                print(f"   ✅ {var}: {display_value}")
         
         if missing_vars:
-            print(f"⚠️ Missing required environment variables: {', '.join(missing_vars)}")
-            print("\n🔧 Configuration Options:")
-            print("   1. Local Development (.env file):")
-            print("      cp .env.example .env")
-            print("      # Edit .env with your credentials")
-            print("\n   2. GitHub Actions (Repository Secrets):")
-            print("      Go to: Settings → Secrets and variables → Actions")
-            print("      Add these secrets:")
-            for var in missing_vars:
-                print(f"        - {var}")
-            print("\n   3. Environment Variables:")
-            print("      export EMAIL_FROM=your_email@gmail.com")
-            print("      export EMAIL_TO=recipient@gmail.com")
-            print("      # etc...")
+            print(f"\n⚠️ Missing required environment variables: {', '.join(missing_vars)}")
+            
+            if is_github_actions:
+                print("\n🔧 GitHub Actions Configuration:")
+                print("   The workflow is running in GitHub Actions but environment variables are missing.")
+                print("   Please check your repository secrets:")
+                print("   Go to: Settings → Secrets and variables → Actions")
+                print("   Ensure these secrets are set:")
+                for var in missing_vars:
+                    print(f"     - {var}")
+                print("\n   Note: Repository secrets are automatically available as environment variables")
+                print("   in GitHub Actions workflows.")
+            else:
+                print("\n🔧 Local Development Configuration:")
+                print("   1. Copy .env.example to .env:")
+                print("      cp .env.example .env")
+                print("   2. Edit .env with your actual credentials")
+                print("   3. Or set environment variables:")
+                print("      export EMAIL_FROM=your_email@gmail.com")
+                print("      export EMAIL_TO=recipient@gmail.com")
+                print("      # etc...")
+            
             return False
         
+        print(f"\n✅ Configuration validation passed!")
         return True
     
     @classmethod
