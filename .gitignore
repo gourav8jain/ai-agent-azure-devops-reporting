@@ -120,3 +120,26 @@ celerybeat.pid
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Additional exclusions for auto-commit
+# Generated reports and data
+*_report_*.html
+*_count_*.json
+*_data_*.json
+
+# Temporary and cache files
+.cache/
+*.cache
+*.bak
+*.backup
+*.orig
+
+# Test outputs
+test_output/
+test_results/
+.coverage
+htmlcov/
+
+# Documentation builds
+docs/_build/
+site/
