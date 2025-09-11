@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+import calendar
 
 # Load .env file for local development (if it exists)
 # GitHub Actions will use repository secrets instead
@@ -33,23 +35,61 @@ class Config:
         'include_projects': ['NEWTON', 'Partner Management Tool']
     }
 
-    # Sprint Period (Manual Override for specific sprint)
-    SPRINT_PERIOD = {
-        'start_date': '19-Aug-2025',
-        'end_date': '01-Sep-2025'
-    }
+    # Sprint Period (Dynamic based on current date)
+    @classmethod
+    def get_current_sprint_period(cls):
+        """Dynamically determine current sprint period based on current date"""
+        today = datetime.now()
+        
+        # Sprint cycles typically run in 2-week periods
+        # Assuming sprints start on Mondays and end on Fridays
+        # We'll calculate the current sprint based on today's date
+        
+        # Get the start of the current week (Monday)
+        days_since_monday = today.weekday()
+        current_week_start = today - timedelta(days=days_since_monday)
+        
+        # Sprint periods are typically 2 weeks (14 days)
+        # Calculate which sprint cycle we're in
+        days_since_epoch = (current_week_start - datetime(2024, 1, 1)).days
+        sprint_cycle = days_since_epoch // 14
+        
+        # Calculate sprint start and end dates
+        sprint_start = datetime(2024, 1, 1) + timedelta(days=sprint_cycle * 14)
+        sprint_end = sprint_start + timedelta(days=13)  # 2 weeks minus 1 day
+        
+        # Format dates for Azure DevOps
+        start_date_str = sprint_start.strftime('%d-%b-%Y')
+        end_date_str = sprint_end.strftime('%d-%b-%Y')
+        
+        return {
+            'start_date': start_date_str,
+            'end_date': end_date_str,
+            'start_datetime': sprint_start,
+            'end_datetime': sprint_end
+        }
+    
+    # Sprint Period (Dynamic - will be set by get_current_sprint_period)
+    SPRINT_PERIOD = None
 
     # Project Specific Configuration
-    PROJECTS = {
-        'NEWTON': {
-            'tags': ['HRMS - Payout'],
-            'iteration_path': 'NEWTON\\NEWTON Q2 19-Aug-2025 - 01-Sep-2025'
-        },
-        'Partner Management Tool': {
-            'tags': [],
-            'iteration_path': 'Partner Management Tool\\PMT Q2 19-Aug-2025 - 01-Sep-2025'
+    @classmethod
+    def get_projects_config(cls):
+        """Get project configuration with dynamic iteration paths"""
+        sprint_period = cls.get_current_sprint_period()
+        
+        return {
+            'NEWTON': {
+                'tags': ['HRMS - Payout'],
+                'iteration_path': f"NEWTON\\NEWTON Q2 {sprint_period['start_date']} - {sprint_period['end_date']}"
+            },
+            'Partner Management Tool': {
+                'tags': [],
+                'iteration_path': f"Partner Management Tool\\PMT Q2 {sprint_period['start_date']} - {sprint_period['end_date']}"
+            }
         }
-    }
+    
+    PROJECTS = None  # Will be set dynamically
 
     # State Categorization Configuration
     STATE_CATEGORIES = {
@@ -121,7 +161,8 @@ class Config:
     @classmethod
     def get_project_config(cls, project_name):
         """Get configuration for a specific project"""
-        return cls.PROJECTS.get(project_name)
+        projects_config = cls.get_projects_config()
+        return projects_config.get(project_name)
     
     @classmethod
     def get_state_category(cls, state):

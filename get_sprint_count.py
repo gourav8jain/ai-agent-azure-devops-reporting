@@ -20,14 +20,9 @@ def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
     
     print(f"\n🔍 Querying {project} project...")
     
-    # Build WIQL query to get work items with assignee info
-    # Use iteration path for more accurate sprint filtering
-    if project == 'NEWTON':
-        iteration_path = "NEWTON\\NEWTON Q2 19-Aug-2025 - 01-Sep-2025"
-    elif project == 'Partner Management Tool':
-        iteration_path = "Partner Management Tool\\PMT Q2 19-Aug-2025 - 01-Sep-2025"
-    else:
-        iteration_path = None
+    # Get project configuration with dynamic iteration path
+    project_config = Config.get_project_config(project)
+    iteration_path = project_config.get('iteration_path') if project_config else None
 
     wiql_query = {
         'query': f"""
@@ -156,16 +151,19 @@ def main():
         print("❌ Configuration validation failed")
         return
     
-    # Sprint period
-    sprint_start = Config.SPRINT_PERIOD['start_date']
-    sprint_end = Config.SPRINT_PERIOD['end_date']
+    # Get current sprint period dynamically
+    sprint_period = Config.get_current_sprint_period()
+    sprint_start = sprint_period['start_date']
+    sprint_end = sprint_period['end_date']
     
-    print(f"📅 Sprint Period: {sprint_start} to {sprint_end}")
+    print(f"📅 Current Sprint Period: {sprint_start} to {sprint_end}")
+    print(f"📅 Sprint calculated based on current date: {datetime.now().strftime('%d-%b-%Y')}")
     
     # Get counts for each project
     all_results = {}
+    projects_config = Config.get_projects_config()
     
-    for project_key, project_config in Config.PROJECTS.items():
+    for project_key, project_config in projects_config.items():
         project_name = project_key
         tags = project_config['tags']
         
