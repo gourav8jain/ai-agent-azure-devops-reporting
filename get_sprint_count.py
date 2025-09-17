@@ -20,35 +20,38 @@ def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
     
     print(f"\n🔍 Querying {project} project...")
     
-    # Get project configuration with dynamic iteration path
+    # Get project configuration; prefer date range filtering
     project_config = Config.get_project_config(project)
     iteration_path = project_config.get('iteration_path') if project_config else None
 
     wiql_query = {
         'query': f"""
-        SELECT [System.Id], [System.AssignedTo], [System.State]
+        SELECT [System.Id]
         FROM WorkItems 
-        WHERE [System.TeamProject] = '{project}'
+        WHERE [System.TeamProject] = @project
         """
     }
 
     # Add iteration path filtering if available
-    if iteration_path:
-        wiql_query["query"] += f" AND [System.IterationPath] = '{iteration_path}'"
-        print(f"   🔄 Filtering by iteration: {iteration_path}")
-    else:
-        # Fallback to date filtering
-        wiql_query["query"] += f"""
-        AND [System.ChangedDate] >= '{sprint_start}'
-        AND [System.ChangedDate] <= '{sprint_end}'
+    # Always use date range filtering to avoid mismatched iteration names
+    # Convert to ISO if provided
+    # Use date-only format for broad compatibility
+    date_start = sprint_start.split('T', 1)[0]
+    date_end = sprint_end.split('T', 1)[0]
+    wiql_query["query"] += f"""
+        AND [System.ChangedDate] >= '{date_start}'
+        AND [System.ChangedDate] <= '{date_end}'
         """
-        print(f"   📅 Fallback to date filtering: {sprint_start} to {sprint_end}")
+    print(f"   📅 Date filtering: {date_start} to {date_end}")
+    # Debug: show final WIQL
+    print("   📝 WIQL query:")
+    print(wiql_query["query"])
 
     # Add tag filtering if specified
     if tags:
         tag_conditions = []
         for tag in tags:
-            tag_conditions.append(f"[System.Tags] CONTAINS '{tag}'")
+            tag_conditions.append(f"[System.Tags] CONTAINS WORDS '{tag}'")
 
         if tag_conditions:
             wiql_query["query"] += f" AND ({' OR '.join(tag_conditions)})"
@@ -153,10 +156,10 @@ def main():
     
     # Get current sprint period dynamically
     sprint_period = Config.get_current_sprint_period()
-    sprint_start = sprint_period['start_date']
-    sprint_end = sprint_period['end_date']
+    sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
+    sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')
     
-    print(f"📅 Current Sprint Period: {sprint_start} to {sprint_end}")
+    print(f"📅 Current Sprint Period: {sprint_period['start_date']} to {sprint_period['end_date']}")
     print(f"📅 Sprint calculated based on current date: {datetime.now().strftime('%d-%b-%Y')}")
     
     # Get counts for each project
@@ -169,7 +172,7 @@ def main():
         
         print(f"\n🏢 Processing project: {project_name}")
         
-        result = get_work_item_count(project_name, tags, sprint_start, sprint_end)
+        result = get_work_item_count(project_name, tags, sprint_start_iso, sprint_end_iso)
         
         if result:
             all_results[project_name] = result

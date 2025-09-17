@@ -38,35 +38,31 @@ class Config:
     # Sprint Period (Dynamic based on current date)
     @classmethod
     def get_current_sprint_period(cls):
-        """Dynamically determine current sprint period based on current date"""
-        today = datetime.now()
-        
-        # Sprint cycles typically run in 2-week periods
-        # Assuming sprints start on Mondays and end on Fridays
-        # We'll calculate the current sprint based on today's date
-        
-        # Get the start of the current week (Monday)
-        days_since_monday = today.weekday()
-        current_week_start = today - timedelta(days=days_since_monday)
-        
-        # Sprint periods are typically 2 weeks (14 days)
-        # Calculate which sprint cycle we're in
-        days_since_epoch = (current_week_start - datetime(2024, 1, 1)).days
-        sprint_cycle = days_since_epoch // 14
-        
-        # Calculate sprint start and end dates
-        sprint_start = datetime(2024, 1, 1) + timedelta(days=sprint_cycle * 14)
-        sprint_end = sprint_start + timedelta(days=13)  # 2 weeks minus 1 day
-        
-        # Format dates for Azure DevOps
+        """Determine the current 14-day sprint period.
+
+        Rule: Sprints start on Tuesday and last 14 days.
+        Anchor date: 2024-01-02 (Tuesday). The current date maps into one of these buckets.
+        Returns display strings as well as ISO timestamps for WIQL.
+        """
+        now = datetime.now()
+        anchor = datetime(2024, 1, 9)  # Tuesday anchor aligned so 17-Sep-2025 -> 16-Sep-2025
+        days_since_anchor = (now.date() - anchor.date()).days
+        sprint_cycle = days_since_anchor // 14
+        sprint_start = anchor + timedelta(days=sprint_cycle * 14)
+        sprint_end = sprint_start + timedelta(days=13)
+
         start_date_str = sprint_start.strftime('%d-%b-%Y')
         end_date_str = sprint_end.strftime('%d-%b-%Y')
-        
+        start_iso = sprint_start.strftime('%Y-%m-%dT00:00:00')
+        end_iso = sprint_end.strftime('%Y-%m-%dT23:59:59')
+
         return {
             'start_date': start_date_str,
             'end_date': end_date_str,
             'start_datetime': sprint_start,
-            'end_datetime': sprint_end
+            'end_datetime': sprint_end,
+            'start_iso': start_iso,
+            'end_iso': end_iso
         }
     
     # Sprint Period (Dynamic - will be set by get_current_sprint_period)
@@ -80,12 +76,12 @@ class Config:
         
         return {
             'NEWTON': {
-                'tags': ['HRMS - Payout'],
-                'iteration_path': f"NEWTON\\NEWTON Q2 {sprint_period['start_date']} - {sprint_period['end_date']}"
+                'tags': [],
+                'iteration_path': None
             },
             'Partner Management Tool': {
                 'tags': [],
-                'iteration_path': f"Partner Management Tool\\PMT Q2 {sprint_period['start_date']} - {sprint_period['end_date']}"
+                'iteration_path': None
             }
         }
     
