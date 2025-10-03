@@ -12,17 +12,44 @@ class Config:
     
     # Core Azure DevOps Configuration
     # Priority: GitHub Secrets > .env file > Default Values
-    AZURE_DEVOPS_ORG = os.getenv('AZURE_DEVOPS_ORG', 'delhivery')
+    
+    # Personal Access Token for both organizations
     AZURE_DEVOPS_PAT = os.getenv('AZURE_DEVOPS_PAT', '')
     
     # Email Configuration
     # Priority: GitHub Secrets > .env file > Default Values
-    EMAIL_FROM = os.getenv('EMAIL_FROM', '')
-    EMAIL_TO = os.getenv('EMAIL_TO', '')
+    EMAIL_FROM = os.getenv('EMAIL_FROM', 'gourav8jain@gmail.com')
+    EMAIL_TO = os.getenv('EMAIL_TO', 'gourav8jain@gmail.com')
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
     SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-    SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
+    SMTP_USERNAME = os.getenv('SMTP_USERNAME', 'gourav8jain@gmail.com')
     SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+    
+    # Multi-Organization Configuration
+    ORGANIZATIONS = {
+        'IWTX': {
+            'name': 'IWTX',
+            'projects': {
+                'IOL_X': {
+                    'project_name': 'IOL_X',
+                    'team_name': 'Charlie Backend Team',
+                    'tags': [],
+                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog'  # Use specific iteration path
+                }
+            }
+        },
+        'IOLPulse': {
+            'name': 'IOLPulse', 
+            'projects': {
+                'VCCWallet': {
+                    'project_name': 'VCCWallet',
+                    'team_name': 'VCCWallet Team',
+                    'tags': [],
+                    'iteration_path': None  # Use date-based filtering
+                }
+            }
+        }
+    }
     
     # Sprint Discovery Configuration
     SPRINT_DISCOVERY = {
@@ -30,9 +57,9 @@ class Config:
         'auto_discover': True,
         'date_range_days': 33, # Adjusted to cover the 2-week period
         'include_completed_sprints': False,
-        'filter_by_tags': ['HRMS - Payout'],
+        'filter_by_tags': [],  # Remove old filter
         'exclude_projects': [],
-        'include_projects': ['NEWTON', 'Partner Management Tool']
+        'include_projects': ['IOL_X', 'VCCWallet']  # Updated to new projects
     }
 
     # Sprint Period (Dynamic based on current date)
@@ -75,11 +102,11 @@ class Config:
         sprint_period = cls.get_current_sprint_period()
         
         return {
-            'NEWTON': {
+            'IOL_X': {
                 'tags': [],
                 'iteration_path': None
             },
-            'Partner Management Tool': {
+            'VCCWallet': {
                 'tags': [],
                 'iteration_path': None
             }
@@ -104,9 +131,11 @@ class Config:
             'AZURE_DEVOPS_PAT',
             'EMAIL_FROM',
             'EMAIL_TO',
-            'SMTP_USERNAME',
-            'SMTP_PASSWORD'
+            'SMTP_USERNAME'
         ]
+        
+        # Optional for testing
+        optional_vars = ['SMTP_PASSWORD']
         
         # Check if we're running in GitHub Actions
         is_github_actions = os.getenv('GITHUB_ACTIONS') == 'true'
@@ -116,6 +145,8 @@ class Config:
         print(f"   .env file loaded: {os.path.exists('.env')}")
         
         missing_vars = []
+        
+        # Check required variables
         for var in required_vars:
             value = getattr(cls, var)
             if not value or value.strip() == '':
@@ -123,6 +154,15 @@ class Config:
                 print(f"   ❌ {var}: Not set or empty")
             else:
                 # Show first 10 characters for security
+                display_value = f"{value[:10]}..." if len(value) > 10 else value
+                print(f"   ✅ {var}: {display_value}")
+        
+        # Check optional variables
+        for var in optional_vars:
+            value = getattr(cls, var)
+            if not value or value.strip() == '':
+                print(f"   ⚠️ {var}: Not set or empty (optional)")
+            else:
                 display_value = f"{value[:10]}..." if len(value) > 10 else value
                 print(f"   ✅ {var}: {display_value}")
         

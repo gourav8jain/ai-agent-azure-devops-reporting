@@ -4,7 +4,7 @@ import base64
 from datetime import datetime
 from config import Config
 
-def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
+def get_work_item_count(organization, project, tags=None, sprint_start=None, sprint_end=None, iteration_path=None):
     """Get work item count for a specific project and sprint period"""
     
     if not Config.AZURE_DEVOPS_PAT:
@@ -18,12 +18,8 @@ def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
         'Content-Type': 'application/json'
     }
     
-    print(f"\n🔍 Querying {project} project...")
+    print(f"\n🔍 Querying {organization}/{project} project...")
     
-    # Get project configuration; prefer date range filtering
-    project_config = Config.get_project_config(project)
-    iteration_path = project_config.get('iteration_path') if project_config else None
-
     wiql_query = {
         'query': f"""
         SELECT [System.Id]
@@ -32,20 +28,21 @@ def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
         """
     }
 
-    # Add iteration path filtering if available
-    # Always use date range filtering to avoid mismatched iteration names
-    # Convert to ISO if provided
-    # Use date-only format for broad compatibility
-    date_start = sprint_start.split('T', 1)[0]
-    date_end = sprint_end.split('T', 1)[0]
-    wiql_query["query"] += f"""
+    # Use iteration path filtering if available, otherwise use date range filtering
+    if iteration_path:
+        wiql_query["query"] += f"""
+        AND [System.IterationPath] = '{iteration_path}'
+        """
+        print(f"   📋 Iteration path filtering: {iteration_path}")
+    else:
+        # Add date range filtering as fallback
+        date_start = sprint_start.split('T', 1)[0]
+        date_end = sprint_end.split('T', 1)[0]
+        wiql_query["query"] += f"""
         AND [System.ChangedDate] >= '{date_start}'
         AND [System.ChangedDate] <= '{date_end}'
         """
-    print(f"   📅 Date filtering: {date_start} to {date_end}")
-    # Debug: show final WIQL
-    print("   📝 WIQL query:")
-    print(wiql_query["query"])
+        print(f"   📅 Date filtering: {date_start} to {date_end}")
 
     # Add tag filtering if specified
     if tags:
@@ -56,13 +53,11 @@ def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
         if tag_conditions:
             wiql_query["query"] += f" AND ({' OR '.join(tag_conditions)})"
             print(f"   🏷️ Filtering by tags: {', '.join(tags)}")
-        else:
-            print(f"   ⚠️ No tag conditions generated")
     else:
         print(f"   ℹ️ No tags specified for filtering")
 
     # Execute WIQL query
-    wiql_url = f"https://dev.azure.com/{Config.AZURE_DEVOPS_ORG}/{project}/_apis/wit/wiql?api-version=7.0"
+    wiql_url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/wiql?api-version=7.0"
     
     try:
         response = requests.post(wiql_url, headers=headers, json=wiql_query)
@@ -77,13 +72,13 @@ def get_work_item_count(project, tags=None, sprint_start=None, sprint_end=None):
             return {'total_items': 0, 'engineer_metrics': {}}
         
         # Get detailed work item information
-        return get_engineer_metrics(project, work_item_ids, headers)
+        return get_engineer_metrics(organization, project, work_item_ids, headers)
         
     except requests.exceptions.RequestException as e:
         print(f"   ❌ Error querying work items: {str(e)}")
         return None
 
-def get_engineer_metrics(project, work_item_ids, headers):
+def get_engineer_metrics(organization, project, work_item_ids, headers):
     """Get engineer-wise metrics for work items"""
     
     # Get work item details in batches
@@ -94,7 +89,7 @@ def get_engineer_metrics(project, work_item_ids, headers):
         batch_ids = work_item_ids[i:i + batch_size]
         ids_param = ','.join(map(str, batch_ids))
         
-        work_items_url = f"https://dev.azure.com/{Config.AZURE_DEVOPS_ORG}/{project}/_apis/wit/workitems?ids={ids_param}&$fields=System.Id,System.AssignedTo,System.State,System.Tags&api-version=7.0"
+        work_items_url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/workitems?ids={ids_param}&$fields=System.Id,System.AssignedTo,System.State,System.Tags&api-version=7.0"
         
         try:
             response = requests.get(work_items_url, headers=headers)
@@ -162,27 +157,37 @@ def main():
     print(f"📅 Current Sprint Period: {sprint_period['start_date']} to {sprint_period['end_date']}")
     print(f"📅 Sprint calculated based on current date: {datetime.now().strftime('%d-%b-%Y')}")
     
-    # Get counts for each project
+    # Get counts for each organization and project
     all_results = {}
-    projects_config = Config.get_projects_config()
     
-    for project_key, project_config in projects_config.items():
-        project_name = project_key
-        tags = project_config['tags']
+    for org_key, org_config in Config.ORGANIZATIONS.items():
+        org_name = org_config['name']
+        print(f"\n🏢 Processing organization: {org_name}")
         
-        print(f"\n🏢 Processing project: {project_name}")
-        
-        result = get_work_item_count(project_name, tags, sprint_start_iso, sprint_end_iso)
-        
-        if result:
-            all_results[project_name] = result
-            print(f"   ✅ {project_name}: {result['total_items']} work items")
-        else:
-            print(f"   ❌ Failed to get data for {project_name}")
+        for project_key, project_config in org_config['projects'].items():
+            project_name = project_key
+            tags = project_config['tags']
+            
+            print(f"\n   📋 Processing project: {project_name}")
+            
+            iteration_path = project_config['iteration_path']
+            result = get_work_item_count(org_name, project_name, tags, sprint_start_iso, sprint_end_iso, iteration_path)
+            
+            if result:
+                # Store with organization prefix to avoid naming conflicts
+                project_key = f"{org_name}_{project_name}"
+                all_results[project_key] = result
+                print(f"      ✅ {project_name}: {result['total_items']} work items")
+            else:
+                print(f"      ❌ Failed to get data for {project_name}")
     
     # Save results to JSON file
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_file = f'sprint_count_{timestamp}.json'
+    output_file = f'data/sprint_count_{timestamp}.json'
+    
+    # Create data directory if it doesn't exist
+    import os
+    os.makedirs('data', exist_ok=True)
     
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(all_results, f, indent=2, ensure_ascii=False)
@@ -194,10 +199,12 @@ def main():
     print(f"=" * 30)
     
     total_work_items = 0
-    for project_name, result in all_results.items():
+    for project_key, result in all_results.items():
         count = result['total_items']
         total_work_items += count
-        print(f"   {project_name}: {count} work items")
+        org_project = project_key.split('_', 1)
+        display_name = f"{org_project[0]}/{org_project[1]}" if len(org_project) > 1 else project_key
+        print(f"   {project_key}: {display_name}: {count} work items")
     
     print(f"   {'Total':>20}: {total_work_items} work items")
     print(f"\n🎯 Ready to generate HTML report!")

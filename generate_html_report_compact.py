@@ -244,12 +244,27 @@ def main():
     print("=" * 40)
     
     # Find the most recent sprint count file
-    json_files = [f for f in os.listdir('.') if f.startswith('sprint_count_') and f.endswith('.json')]
+    data_dir = 'data'
+    json_files = []
+    
+    if os.path.exists(data_dir):
+        json_files = [f for f in os.listdir(data_dir) if f.startswith('sprint_count_') and f.endswith('.json')]
+    
+    # Also check current directory for backward compatibility
+    if not json_files:
+        json_files = [f for f in os.listdir('.') if f.startswith('sprint_count_') and f.endswith('.json')]
+    
     if not json_files:
         print("❌ No sprint count files found. Run get_sprint_count.py first.")
         return
     
-    latest_file = max(json_files, key=lambda x: os.path.getctime(x))
+    # Get the latest file with full path
+    latest_file = max(json_files, key=lambda x: os.path.getctime(os.path.join(data_dir, x)) if os.path.exists(data_dir) else os.path.getctime(x))
+    
+    # Use full path if file is in data directory
+    if os.path.exists(os.path.join(data_dir, latest_file)):
+        latest_file = os.path.join(data_dir, latest_file)
+    
     print(f"📁 Using data from: {latest_file}")
     
     # Generate compact HTML report
