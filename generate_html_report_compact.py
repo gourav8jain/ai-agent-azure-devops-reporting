@@ -40,14 +40,14 @@ def generate_compact_html_report(json_file):
     <div style="max-width: 900px; margin: 0 auto; background: white; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,0.1); overflow: hidden;">
         <!-- Header -->
         <div style="background: #0078d4; color: white; padding: 15px; text-align: center;">
-            <h1 style="margin: 0; font-size: 22px; font-weight: 300;">🚀 Azure DevOps Sprint Report</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 300;">[REPORT] Azure DevOps Sprint Report</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 13px;">Sprint Period: {sprint_start} to {sprint_end}</p>
             <p style="margin: 3px 0 0 0; opacity: 0.9; font-size: 13px;">Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
         </div>
         
         <!-- Concise Task Summary -->
         <div style="margin: 15px 10px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; text-align: center;">📋 Sprint Task Overview</h2>
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; text-align: center;">[OVERVIEW] Sprint Task Overview</h2>
             <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; margin-bottom: 15px;">
                 <div style="flex: 1; min-width: 120px; margin: 5px;">
                     <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sum(result['total_items'] for result in sprint_data.values())}</div>
@@ -68,7 +68,7 @@ def generate_compact_html_report(json_file):
             </div>
             <!-- Status Breakdown -->
             <div style="background: rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; margin-top: 10px;">
-                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; text-align: center;">📊 Status Breakdown</div>
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; text-align: center;">[BREAKDOWN] Status Breakdown</div>
                 <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap;">
                     {''.join([f'''
                     <div style="flex: 1; min-width: 80px; margin: 3px;">
@@ -85,21 +85,21 @@ def generate_compact_html_report(json_file):
                 <tr>
                     <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
                         <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 80px;">
-                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">📊 Total Work Items</h3>
+                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">[ITEMS] Total Work Items</h3>
                             <div style="font-size: 24px; font-weight: 700; color: #0078d4; margin-bottom: 5px; text-align: center;">{sum(result['total_items'] for result in sprint_data.values())}</div>
                             <div style="color: #666; font-size: 12px; text-align: center;">Across all projects</div>
                         </div>
                     </td>
                     <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
                         <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 80px;">
-                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">🏢 Projects</h3>
+                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">[PROJECTS] Projects</h3>
                             <div style="font-size: 24px; font-weight: 700; color: #0078d4; margin-bottom: 5px; text-align: center;">{len(sprint_data)}</div>
                             <div style="color: #666; font-size: 12px; text-align: center;">Active projects in sprint</div>
                         </div>
                     </td>
                     <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
                         <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 80px;">
-                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">👥 Engineers</h3>
+                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">[TEAM] Engineers</h3>
                             <div style="font-size: 24px; font-weight: 700; color: #0078d4; margin-bottom: 5px; text-align: center;">{sum(len(result['engineer_metrics']) for result in sprint_data.values())}</div>
                             <div style="color: #666; font-size: 12px; text-align: center;">Team members involved</div>
                         </div>
@@ -146,6 +146,15 @@ def generate_compact_html_report(json_file):
                 category = Config.get_state_category(state)
                 status_counts[category] = status_counts.get(category, 0) + count
         
+        # Calculate values for template placeholders
+        total_items = result['total_items']
+        engineer_count = len(result['engineer_metrics'])
+        status_count = len(status_counts)
+        
+        # Make sprint dates available in the template
+        sprint_start_date = sprint_start
+        sprint_end_date = sprint_end
+        
         # Sort status counts by count
         sorted_status_counts = sorted(status_counts.items(), key=lambda x: x[1], reverse=True)
         
@@ -155,12 +164,12 @@ def generate_compact_html_report(json_file):
             <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e9ecef;">
                 <h2 style="margin: 0 0 8px 0; color: #0078d4; font-size: 20px; font-weight: 600;">{display_name}</h2>
                 <span style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; display: inline-block;">{tag_display}</span>
-                <div style="background: #f3e5f5; color: #7b1fa2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; margin-top: 8px; display: inline-block;">📅 {iteration_display}</div>
+                <div style="background: #f3e5f5; color: #7b1fa2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; margin-top: 8px; display: inline-block;">[SPRINT] {iteration_display}</div>
             </div>
             
             <!-- Status Summary -->
             <div style="margin-bottom: 20px;">
-                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">📈 Status Level Summary</h3>
+                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[STATUS] Status Level Summary</h3>
                 <table style="width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 auto;">
                     <tr>"""
         
@@ -189,23 +198,23 @@ def generate_compact_html_report(json_file):
             
             <!-- Task Summary -->
             <div style="margin-bottom: 20px;">
-                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">📋 Task Summary</h3>
+                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[TASKS] Task Summary</h3>
                 <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; border-left: 4px solid #28a745;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <span style="font-size: 14px; font-weight: 600; color: #333;">Total Tasks in Current Sprint</span>
-                        <span style="font-size: 18px; font-weight: 700; color: #28a745; background: white; padding: 6px 12px; border-radius: 6px; border: 1px solid #dee2e6;">{result['total_items']}</span>
+                        <span style="font-size: 18px; font-weight: 700; color: #28a745; background: white; padding: 6px 12px; border-radius: 6px; border: 1px solid #dee2e6;">{total_items}</span>
                     </div>
                     <div style="font-size: 12px; color: #666; line-height: 1.4;">
-                        <strong>Active Engineers:</strong> {len(result['engineer_metrics'])} | 
-                        <strong>Status Categories:</strong> {len(status_counts)} | 
-                        <strong>Sprint Period:</strong> {sprint_start} to {sprint_end}
+                        <strong>Active Engineers:</strong> {engineer_count} | 
+                        <strong>Status Categories:</strong> {status_count} | 
+                        <strong>Sprint Period:</strong> {sprint_start_date} to {sprint_end_date}
                     </div>
                 </div>
             </div>
             
             <!-- Engineer Breakdown -->
             <div>
-                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">👨‍💻 Engineer Level Breakdown</h3>
+                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[ENGINEERS] Engineer Level Breakdown</h3>
                 <table style="width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 auto;">
 """
         
@@ -241,7 +250,7 @@ def generate_compact_html_report(json_file):
                     <td style="width: 25%; padding: 0; text-align: center; vertical-align: top;">
                         <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 120px;">
                             <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 10px; text-align: center;">{engineer}</div>
-                            <div style="color: #0078d4; font-weight: 500; margin-bottom: 10px; text-align: center; font-size: 13px;">📊 {total_items} items</div>
+                            <div style="color: #0078d4; font-weight: 500; margin-bottom: 10px; text-align: center; font-size: 13px;">[ITEMS] {total_items} items</div>
                             <div style="margin-top: 10px;">
                                 {state_breakdown}
                             </div>
@@ -284,7 +293,7 @@ def generate_compact_html_report(json_file):
                     <td style="width: 25%; padding: 0; text-align: center; vertical-align: top;">
                         <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 120px;">
                             <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 10px; text-align: center;">{engineer}</div>
-                            <div style="color: #0078d4; font-weight: 500; margin-bottom: 10px; text-align: center; font-size: 13px;">📊 {total_items} items</div>
+                            <div style="color: #0078d4; font-weight: 500; margin-bottom: 10px; text-align: center; font-size: 13px;">[ITEMS] {total_items} items</div>
                             <div style="margin-top: 10px;">
                                 {state_breakdown}
                             </div>
