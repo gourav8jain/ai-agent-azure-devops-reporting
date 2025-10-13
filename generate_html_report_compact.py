@@ -126,31 +126,38 @@ def generate_compact_html_report(json_file):
         
         # Calculate values for template placeholders
         total_items = result['total_items']
-        engineer_count = len(result['engineer_metrics'])
-        status_count = len(status_counts)
         
-        # Make sprint dates available in the template
-        sprint_start_date = sprint_start
-        sprint_end_date = sprint_end
+        # Sort status counts by preferred display order first, then by count
+        preferred_order = ['In Progress', 'To Do', 'Done', 'Ready for QA', 'QA in Progress', 'Ready for Release']
+        def status_sort_key(item):
+            status, count = item
+            return (preferred_order.index(status) if status in preferred_order else len(preferred_order), -count, status)
+        sorted_status_counts = sorted(status_counts.items(), key=status_sort_key)
         
-        # Sort status counts by count
-        sorted_status_counts = sorted(status_counts.items(), key=lambda x: x[1], reverse=True)
-        
-        # Build status summary HTML
+        # Build status summary HTML (prepend Total card)
         status_html = ""
-        for i, (status, count) in enumerate(sorted_status_counts):
-            if i > 0 and i % 3 == 0:
-                status_html += "</tr><tr>"
-            status_html += f"""
-                        <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
-                            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 3px solid #0078d4; min-height: 70px;">
-                                <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; text-align: center;">{status}</div>
-                                <div style="font-size: 20px; font-weight: 700; color: #0078d4; text-align: center;">{count}</div>
+        total_status = sum(count for _, count in sorted_status_counts)
+        status_html += f"""
+                        <td style=\"width: 33.33%; padding: 0; text-align: center; vertical-align: top;\">
+                            <div style=\"background: #e9f5ff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 3px solid #1976d2; min-height: 70px;\">
+                                <div style=\"font-size: 14px; font-weight: 600; color: #1976d2; margin-bottom: 8px; text-align: center;\">Total</div>
+                                <div style=\"font-size: 20px; font-weight: 700; color: #0b5cab; text-align: center;\">{total_status}</div>
                             </div>
                         </td>"""
-        
-        # Fill remaining cells if needed
-        remaining_cells = 3 - (len(sorted_status_counts) % 3)
+        for i, (status, count) in enumerate(sorted_status_counts):
+            cells_in_row = (i + 1)  # +1 because Total card already added at start
+            if cells_in_row % 3 == 0:
+                status_html += "</tr><tr>"
+            status_html += f"""
+                        <td style=\"width: 33.33%; padding: 0; text-align: center; vertical-align: top;\">
+                            <div style=\"background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 3px solid #0078d4; min-height: 70px;\">
+                                <div style=\"font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; text-align: center;\">{status}</div>
+                                <div style=\"font-size: 20px; font-weight: 700; color: #0078d4; text-align: center;\">{count}</div>
+                            </div>
+                        </td>"""
+        # Fill remaining cells if needed (considering Total)
+        total_cells = 1 + len(sorted_status_counts)
+        remaining_cells = 3 - (total_cells % 3)
         if remaining_cells < 3:
             for _ in range(remaining_cells):
                 status_html += '<td style="width: 33.33%; padding: 0;"></td>'
@@ -225,6 +232,13 @@ def generate_compact_html_report(json_file):
                 
                 # Create detailed status breakdown with highlighted numbers (include all statuses)
                 status_breakdown = ""
+                # Prepend Total chip
+                status_breakdown += f'''\
+                        <div style="background: #e9f5ff; color: #0b5cab; padding: 8px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; 
+                                    border: 2px solid #b6e0ff; display: inline-block; margin: 3px; text-align: center; min-width: 60px;">
+                            <div style="font-size: 10px; font-weight: 500; margin-bottom: 2px;">Total</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #0b5cab;">{total_items}</div>
+                        </div>'''
                 for category, count in sorted_abstracted_states:
                     if category == 'Done':
                         status_breakdown += f'''
