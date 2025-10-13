@@ -31,10 +31,11 @@ class Config:
             'name': 'IWTX',
             'projects': {
                 'IOL_X': {
-                    'project_name': 'IOL_X',
+                    'project_name': 'IOL Pay',  # Display name: IOL Pay
                     'team_name': 'Charlie Backend Team',
                     'tags': [],
-                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-28'  # Current sprint: Iteration-28
+                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-28',  # Current sprint: Iteration-28
+                    'iteration_display': 'Iteration-28 (Oct 14 - Nov 3)'  # Display with dates
                 }
             }
         },
@@ -45,7 +46,8 @@ class Config:
                     'project_name': 'VCCWallet',
                     'team_name': 'VCCWallet Team',
                     'tags': [],
-                    'iteration_path': 'VCCWallet\\Sprint 11'  # Current sprint: Sprint-11
+                    'iteration_path': 'VCCWallet\\Sprint 11',  # Current sprint: Sprint-11
+                    'iteration_display': 'Sprint-11 (Oct 14 - Oct 27)'  # Display with dates
                 }
             }
         }
@@ -115,12 +117,12 @@ class Config:
 
     # State Categorization Configuration
     STATE_CATEGORIES = {
-        'To-Do': ['Open', 'TO DO', 'New', 'REQ-Review'],
-        'In Progress': ['In Progress', 'Code Review'],
-        'In QA': ['On-QA', 'Fixed'],
-        'Release Pending': ['QA Reviewed', 'SIGNOFF'],
-        'Released': ['DONE', 'Done', 'Closed', 'Resolved', 'Completed'],
-        'Drop': ['Drop']
+        'To Do': ['Open', 'TO DO', 'New', 'REQ-Review', 'To Do'],
+        'In Progress': ['In Progress', 'Code Review', 'Active', 'In Development'],
+        'Ready for QA': ['On-QA', 'Fixed', 'Ready for QA', 'QA Ready'],
+        'QA in Progress': ['QA in Progress', 'QA Testing', 'In QA'],
+        'Ready for Release': ['QA Reviewed', 'SIGNOFF', 'Ready for Release', 'Release Ready'],
+        'Done': ['DONE', 'Done', 'Closed', 'Resolved', 'Completed', 'Released']
     }
     
     @classmethod

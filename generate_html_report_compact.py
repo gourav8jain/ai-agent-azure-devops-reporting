@@ -68,15 +68,34 @@ def generate_compact_html_report(json_file):
 """
     
     # Add project sections
-    for project_name, result in sprint_data.items():
-        project_config = Config.get_project_config(project_name)
+    for project_key, result in sprint_data.items():
+        # Extract organization and project from key (format: "IWTX_IOL_X" or "IOLPulse_VCCWallet")
+        org_project = project_key.split('_', 1)
+        if len(org_project) == 2:
+            org_name, project_id = org_project
+        else:
+            org_name = "Unknown"
+            project_id = project_key
         
-        # Get tag info
+        # Get project configuration from organizations
+        project_config = None
+        iteration_display = "Current Sprint"
+        
+        for org_key, org_config in Config.ORGANIZATIONS.items():
+            if org_config['name'] == org_name:
+                for proj_key, proj_config in org_config['projects'].items():
+                    if proj_key == project_id:
+                        project_config = proj_config
+                        break
+                break
+        
+        # Get display name and iteration info
+        display_name = project_config['project_name'] if project_config else project_id
         tags = project_config['tags'] if project_config else []
         tag_display = f"Filtered by: {', '.join(tags)}" if tags else "All work items"
         
-        # Get iteration path
-        iteration_path = project_config['iteration_path'] if project_config else "Default iteration"
+        # Get iteration display
+        iteration_display = project_config.get('iteration_display', 'Current Sprint') if project_config else "Current Sprint"
         
         # Calculate status-level summary using abstraction mapping
         status_counts = {}
@@ -89,12 +108,12 @@ def generate_compact_html_report(json_file):
         sorted_status_counts = sorted(status_counts.items(), key=lambda x: x[1], reverse=True)
         
         html_content += f"""
-        <!-- Project Section: {project_name} -->
+        <!-- Project Section: {display_name} -->
         <div style="padding: 20px; border-bottom: 1px solid #e9ecef;">
             <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e9ecef;">
-                <h2 style="margin: 0 0 8px 0; color: #0078d4; font-size: 20px; font-weight: 600;">{project_name}</h2>
+                <h2 style="margin: 0 0 8px 0; color: #0078d4; font-size: 20px; font-weight: 600;">{display_name}</h2>
                 <span style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; display: inline-block;">{tag_display}</span>
-                <div style="background: #f3e5f5; color: #7b1fa2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; margin-top: 8px; display: inline-block;">📅 Iteration: {iteration_path}</div>
+                <div style="background: #f3e5f5; color: #7b1fa2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; margin-top: 8px; display: inline-block;">📅 {iteration_display}</div>
             </div>
             
             <!-- Status Summary -->
