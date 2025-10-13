@@ -36,14 +36,16 @@ def generate_compact_html_report(json_file):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Azure DevOps Sprint Report</title>
 </head>
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 10px; background-color: #f5f5f5; color: #333;">
-    <div style="max-width: 900px; margin: 0 auto; background: white; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,0.1); overflow: hidden;">
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; color: #333;">
+    <table style="width: 100%; max-width: 900px; margin: 0 auto; background: white; border-collapse: collapse;">
         <!-- Header -->
-        <div style="background: #0078d4; color: white; padding: 15px; text-align: center;">
-            <h1 style="margin: 0; font-size: 22px; font-weight: 300;">Azure DevOps Sprint Report</h1>
-            <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 13px;">Sprint Period: {sprint_start} to {sprint_end}</p>
-            <p style="margin: 3px 0 0 0; opacity: 0.9; font-size: 13px;">Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
-        </div>
+        <tr>
+            <td style="background: #0078d4; color: white; padding: 20px; text-align: center;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Azure DevOps Sprint Report</h1>
+                <p style="margin: 10px 0 0 0; font-size: 14px;">Sprint Period: {sprint_start} to {sprint_end}</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
+            </td>
+        </tr>
         
         <!-- Concise Task Summary -->
         <div style="margin: 15px 10px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
@@ -236,12 +238,28 @@ def generate_compact_html_report(json_file):
             # Sort abstracted states by count and show only top 3
             sorted_abstracted_states = sorted(abstracted_engineer_states.items(), key=lambda x: x[1], reverse=True)
             
-            state_breakdown = ""
-            for j, (category, count) in enumerate(sorted_abstracted_states[:3]):  # Only show top 3 states
+            # Calculate task completion percentage
+            completed_tasks = abstracted_engineer_states.get('Done', 0)
+            completion_percentage = round((completed_tasks / total_items * 100)) if total_items > 0 else 0
+            
+            # Create concise task summary
+            task_summary = f"Completion: {completion_percentage}%"
+            if len(sorted_abstracted_states) > 0:
+                top_status = sorted_abstracted_states[0]
+                task_summary += f" | Top: {top_status[0]} ({top_status[1]})"
+            
+            state_breakdown = f"""
+                                <div style="background: #e8f4fd; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; text-align: center; border: 1px solid #b3d9f2;">
+                                    <div style="font-size: 11px; color: #1976d2; font-weight: 600; margin-bottom: 4px;">Task Summary</div>
+                                    <div style="font-size: 10px; color: #555; line-height: 1.3;">{task_summary}</div>
+                                </div>"""
+            
+            # Add top 2 status items
+            for j, (category, count) in enumerate(sorted_abstracted_states[:2]):  # Show top 2 states
                 state_breakdown += f"""
-                                <div style="background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; padding: 8px 12px; margin-bottom: 8px; text-align: left;">
-                                    <span style="font-size: 12px; color: #555; font-weight: 500; float: left;">{category}</span>
-                                    <span style="font-size: 14px; font-weight: 700; color: #0078d4; background: white; padding: 4px 8px; border-radius: 4px; min-width: 25px; text-align: center; border: 1px solid #dee2e6; float: right;">{count}</span>
+                                <div style="background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; padding: 6px 10px; margin-bottom: 6px; text-align: left;">
+                                    <span style="font-size: 11px; color: #555; font-weight: 500; float: left;">{category}</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: #0078d4; background: white; padding: 2px 6px; border-radius: 3px; min-width: 20px; text-align: center; border: 1px solid #dee2e6; float: right;">{count}</span>
                                     <div style="clear: both;"></div>
                                 </div>"""
             
@@ -279,12 +297,28 @@ def generate_compact_html_report(json_file):
                 # Sort abstracted states by count and show only top 3
                 sorted_abstracted_states = sorted(abstracted_engineer_states.items(), key=lambda x: x[1], reverse=True)
                 
-                state_breakdown = ""
-                for j, (category, count) in enumerate(sorted_abstracted_states[:3]):  # Only show top 3 states
+                # Calculate task completion percentage
+                completed_tasks = abstracted_engineer_states.get('Done', 0)
+                completion_percentage = round((completed_tasks / total_items * 100)) if total_items > 0 else 0
+                
+                # Create concise task summary
+                task_summary = f"Completion: {completion_percentage}%"
+                if len(sorted_abstracted_states) > 0:
+                    top_status = sorted_abstracted_states[0]
+                    task_summary += f" | Top: {top_status[0]} ({top_status[1]})"
+                
+                state_breakdown = f"""
+                                <div style="background: #e8f4fd; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; text-align: center; border: 1px solid #b3d9f2;">
+                                    <div style="font-size: 11px; color: #1976d2; font-weight: 600; margin-bottom: 4px;">Task Summary</div>
+                                    <div style="font-size: 10px; color: #555; line-height: 1.3;">{task_summary}</div>
+                                </div>"""
+                
+                # Add top 2 status items
+                for j, (category, count) in enumerate(sorted_abstracted_states[:2]):  # Show top 2 states
                     state_breakdown += f"""
-                                <div style="background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; padding: 8px 12px; margin-bottom: 8px; text-align: left;">
-                                    <span style="font-size: 12px; color: #555; font-weight: 500; float: left;">{category}</span>
-                                    <span style="font-size: 14px; font-weight: 700; color: #0078d4; background: white; padding: 4px 8px; border-radius: 4px; min-width: 25px; text-align: center; border: 1px solid #dee2e6; float: right;">{count}</span>
+                                <div style="background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; padding: 6px 10px; margin-bottom: 6px; text-align: left;">
+                                    <span style="font-size: 11px; color: #555; font-weight: 500; float: left;">{category}</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: #0078d4; background: white; padding: 2px 6px; border-radius: 3px; min-width: 20px; text-align: center; border: 1px solid #dee2e6; float: right;">{count}</span>
                                     <div style="clear: both;"></div>
                                 </div>"""
                 
