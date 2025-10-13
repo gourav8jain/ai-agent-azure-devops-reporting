@@ -35,6 +35,14 @@ def generate_compact_html_report(json_file):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Azure DevOps Sprint Report</title>
+    <style>
+        @media only screen and (max-width: 600px) {{
+            .mobile-stack {{ display: block !important; width: 100% !important; }}
+            .mobile-full {{ width: 100% !important; padding: 10px !important; }}
+            .mobile-text {{ font-size: 14px !important; }}
+            .mobile-padding {{ padding: 15px !important; }}
+        }}
+    </style>
 </head>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; color: #333;">
     <table style="width: 100%; max-width: 900px; margin: 0 auto; background: white; border-collapse: collapse;">
@@ -47,68 +55,36 @@ def generate_compact_html_report(json_file):
             </td>
         </tr>
         
-        <!-- Concise Task Summary -->
-        <div style="margin: 15px 10px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; text-align: center;">[OVERVIEW] Sprint Task Overview</h2>
-            <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; margin-bottom: 15px;">
-                <div style="flex: 1; min-width: 120px; margin: 5px;">
-                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sum(result['total_items'] for result in sprint_data.values())}</div>
-                    <div style="font-size: 12px; opacity: 0.9;">Total Tasks</div>
-                </div>
-                <div style="flex: 1; min-width: 120px; margin: 5px;">
-                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{len(sprint_data)}</div>
-                    <div style="font-size: 12px; opacity: 0.9;">Projects</div>
-                </div>
-                <div style="flex: 1; min-width: 120px; margin: 5px;">
-                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sum(len(result['engineer_metrics']) for result in sprint_data.values())}</div>
-                    <div style="font-size: 12px; opacity: 0.9;">Engineers</div>
-                </div>
-                <div style="flex: 1; min-width: 120px; margin: 5px;">
-                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sprint_start} to {sprint_end}</div>
-                    <div style="font-size: 12px; opacity: 0.9;">Sprint Period</div>
-                </div>
-            </div>
-            <!-- Status Breakdown -->
-            <div style="background: rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; margin-top: 10px;">
-                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; text-align: center;">[BREAKDOWN] Status Breakdown</div>
-                <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap;">
-                    {''.join([f'''
-                    <div style="flex: 1; min-width: 80px; margin: 3px;">
-                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 2px;">{count}</div>
-                        <div style="font-size: 10px; opacity: 0.8;">{status}</div>
-                    </div>''' for status, count in sorted(global_status_counts.items(), key=lambda x: x[1], reverse=True)[:6]])}
-                </div>
-            </div>
-        </div>
-        
         <!-- Summary Cards -->
-        <div style="margin: 15px 0; padding: 0 10px;">
-            <table style="width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 auto;">
-                <tr>
-                    <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
-                        <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 80px;">
-                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">[ITEMS] Total Work Items</h3>
-                            <div style="font-size: 24px; font-weight: 700; color: #0078d4; margin-bottom: 5px; text-align: center;">{sum(result['total_items'] for result in sprint_data.values())}</div>
-                            <div style="color: #666; font-size: 12px; text-align: center;">Across all projects</div>
-                        </div>
-                    </td>
-                    <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
-                        <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 80px;">
-                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">[PROJECTS] Projects</h3>
-                            <div style="font-size: 24px; font-weight: 700; color: #0078d4; margin-bottom: 5px; text-align: center;">{len(sprint_data)}</div>
-                            <div style="color: #666; font-size: 12px; text-align: center;">Active projects in sprint</div>
-                        </div>
-                    </td>
-                    <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
-                        <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 80px;">
-                            <h3 style="color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; text-align: center;">[TEAM] Engineers</h3>
-                            <div style="font-size: 24px; font-weight: 700; color: #0078d4; margin-bottom: 5px; text-align: center;">{sum(len(result['engineer_metrics']) for result in sprint_data.values())}</div>
-                            <div style="color: #666; font-size: 12px; text-align: center;">Team members involved</div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
+        <tr>
+            <td style="padding: 20px;" class="mobile-padding">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="width: 33.33%; padding: 10px; text-align: center; vertical-align: top;" class="mobile-stack">
+                            <div style="background: #f8f9fa; padding: 20px; border: 2px solid #0078d4; border-radius: 8px; margin-bottom: 10px;">
+                                <h3 style="color: #333; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;" class="mobile-text">Total Work Items</h3>
+                                <div style="font-size: 28px; font-weight: 700; color: #0078d4; margin-bottom: 5px;">{sum(result['total_items'] for result in sprint_data.values())}</div>
+                                <div style="color: #333; font-size: 14px; font-weight: 500;" class="mobile-text">Across all projects</div>
+                            </div>
+                        </td>
+                        <td style="width: 33.33%; padding: 10px; text-align: center; vertical-align: top;" class="mobile-stack">
+                            <div style="background: #f8f9fa; padding: 20px; border: 2px solid #0078d4; border-radius: 8px; margin-bottom: 10px;">
+                                <h3 style="color: #333; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;" class="mobile-text">Projects</h3>
+                                <div style="font-size: 28px; font-weight: 700; color: #0078d4; margin-bottom: 5px;">{len(sprint_data)}</div>
+                                <div style="color: #333; font-size: 14px; font-weight: 500;" class="mobile-text">Active projects in sprint</div>
+                            </div>
+                        </td>
+                        <td style="width: 33.33%; padding: 10px; text-align: center; vertical-align: top;" class="mobile-stack">
+                            <div style="background: #f8f9fa; padding: 20px; border: 2px solid #0078d4; border-radius: 8px; margin-bottom: 10px;">
+                                <h3 style="color: #333; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;" class="mobile-text">Engineers</h3>
+                                <div style="font-size: 28px; font-weight: 700; color: #0078d4; margin-bottom: 5px;">{sum(len(result['engineer_metrics']) for result in sprint_data.values())}</div>
+                                <div style="color: #333; font-size: 14px; font-weight: 500;" class="mobile-text">Team members involved</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
 """
     
     # Add project sections
@@ -181,109 +157,29 @@ def generate_compact_html_report(json_file):
         
         html_content += f"""
         <!-- Project Section: {display_name} -->
-        <div style="padding: 20px; border-bottom: 1px solid #e9ecef;">
-            <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e9ecef;">
-                <h2 style="margin: 0 0 8px 0; color: #0078d4; font-size: 20px; font-weight: 600;">{display_name}</h2>
-                <span style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; display: inline-block;">{tag_display}</span>
-                <div style="background: #f3e5f5; color: #7b1fa2; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: 500; margin-top: 8px; display: inline-block;">[SPRINT] {iteration_display}</div>
-            </div>
-            
-            <!-- Status Summary -->
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[STATUS] Status Level Summary</h3>
-                <table style="width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 auto;">
-                    <tr>{status_html}
+        <tr>
+            <td style="padding: 20px; border-top: 2px solid #e9ecef;" class="mobile-padding">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding-bottom: 15px; border-bottom: 2px solid #0078d4;">
+                            <h2 style="margin: 0 0 10px 0; color: #0078d4; font-size: 22px; font-weight: 600;" class="mobile-text">{display_name}</h2>
+                            <div style="background: #e3f2fd; color: #1976d2; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; display: inline-block; margin-right: 10px; margin-bottom: 5px;" class="mobile-text">{tag_display}</div>
+                            <div style="background: #f3e5f5; color: #7b1fa2; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; display: inline-block;" class="mobile-text">{iteration_display}</div>
+                        </td>
                     </tr>
-                </table>
-            </div>
-            
-            <!-- Task Summary -->
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[TASKS] Task Summary</h3>
-                <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; border-left: 4px solid #28a745;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size: 14px; font-weight: 600; color: #333;">Total Tasks in Current Sprint</span>
-                        <span style="font-size: 18px; font-weight: 700; color: #28a745; background: white; padding: 6px 12px; border-radius: 6px; border: 1px solid #dee2e6;">{total_items}</span>
-                    </div>
-                    <div style="font-size: 12px; color: #666; line-height: 1.4;">
-                        <strong>Active Engineers:</strong> {engineer_count} | 
-                        <strong>Status Categories:</strong> {status_count} | 
-                        <strong>Sprint Period:</strong> {sprint_start_date} to {sprint_end_date}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Engineer Breakdown -->
-            <div>
-                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[ENGINEERS] Engineer Level Breakdown</h3>
-                <table style="width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 auto;">
+                    <tr>
+                        <td style="padding: 20px 0;">
+                            <h3 style="color: #333; font-size: 18px; margin: 0 0 15px 0; font-weight: 600;" class="mobile-text">Engineer Breakdown with Task Details</h3>
+                            <table style="width: 100%; border-collapse: collapse;">
 """
         
         # Generate engineer cards in compact 2x4 grid
         engineer_list = list(result['engineer_metrics'].items())
         
-        # First row (first 4 engineers)
-        html_content += "<tr>"
-        for i in range(min(4, len(engineer_list))):
-            engineer, metrics = engineer_list[i]
-            total_items = metrics.get('total_items', 0)
-            states = metrics.get('states', {})
-            
-            # Generate state breakdown with abstraction mapping
-            abstracted_engineer_states = {}
-            for state, count in states.items():
-                category = Config.get_state_category(state)
-                abstracted_engineer_states[category] = abstracted_engineer_states.get(category, 0) + count
-            
-            # Sort abstracted states by count and show only top 3
-            sorted_abstracted_states = sorted(abstracted_engineer_states.items(), key=lambda x: x[1], reverse=True)
-            
-            # Calculate task completion percentage
-            completed_tasks = abstracted_engineer_states.get('Done', 0)
-            completion_percentage = round((completed_tasks / total_items * 100)) if total_items > 0 else 0
-            
-            # Create concise task summary
-            task_summary = f"Completion: {completion_percentage}%"
-            if len(sorted_abstracted_states) > 0:
-                top_status = sorted_abstracted_states[0]
-                task_summary += f" | Top: {top_status[0]} ({top_status[1]})"
-            
-            state_breakdown = f"""
-                                <div style="background: #e8f4fd; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; text-align: center; border: 1px solid #b3d9f2;">
-                                    <div style="font-size: 11px; color: #1976d2; font-weight: 600; margin-bottom: 4px;">Task Summary</div>
-                                    <div style="font-size: 10px; color: #555; line-height: 1.3;">{task_summary}</div>
-                                </div>"""
-            
-            # Add top 2 status items
-            for j, (category, count) in enumerate(sorted_abstracted_states[:2]):  # Show top 2 states
-                state_breakdown += f"""
-                                <div style="background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; padding: 6px 10px; margin-bottom: 6px; text-align: left;">
-                                    <span style="font-size: 11px; color: #555; font-weight: 500; float: left;">{category}</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: #0078d4; background: white; padding: 2px 6px; border-radius: 3px; min-width: 20px; text-align: center; border: 1px solid #dee2e6; float: right;">{count}</span>
-                                    <div style="clear: both;"></div>
-                                </div>"""
-            
-            html_content += f"""
-                    <td style="width: 25%; padding: 0; text-align: center; vertical-align: top;">
-                        <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 120px;">
-                            <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 10px; text-align: center;">{engineer}</div>
-                            <div style="color: #0078d4; font-weight: 500; margin-bottom: 10px; text-align: center; font-size: 13px;">[ITEMS] {total_items} items</div>
-                            <div style="margin-top: 10px;">
-                                {state_breakdown}
-                            </div>
-                        </div>
-                    </td>"""
-        
-        # Fill remaining cells in first row if less than 4 engineers
-        for i in range(len(engineer_list), 4):
-            html_content += '<td style="width: 25%; padding: 0;"></td>'
-        
-        html_content += "</tr>"
-        
-        # Second row (remaining engineers, if any)
-        if len(engineer_list) > 4:
+        # Generate engineer rows (mobile-friendly: 1 per row on mobile, 2 per row on desktop)
+        for row_start in range(0, len(engineer_list), 2):
             html_content += "<tr>"
-            for i in range(4, min(8, len(engineer_list))):
+            for i in range(row_start, min(row_start + 2, len(engineer_list))):
                 engineer, metrics = engineer_list[i]
                 total_items = metrics.get('total_items', 0)
                 states = metrics.get('states', {})
@@ -294,64 +190,64 @@ def generate_compact_html_report(json_file):
                     category = Config.get_state_category(state)
                     abstracted_engineer_states[category] = abstracted_engineer_states.get(category, 0) + count
                 
-                # Sort abstracted states by count and show only top 3
+                # Sort abstracted states by count (include all statuses)
                 sorted_abstracted_states = sorted(abstracted_engineer_states.items(), key=lambda x: x[1], reverse=True)
                 
                 # Calculate task completion percentage
                 completed_tasks = abstracted_engineer_states.get('Done', 0)
                 completion_percentage = round((completed_tasks / total_items * 100)) if total_items > 0 else 0
                 
-                # Create concise task summary
-                task_summary = f"Completion: {completion_percentage}%"
+                # Create comprehensive task details
+                task_details = f"Total Tasks: {total_items} | Completion: {completion_percentage}%"
                 if len(sorted_abstracted_states) > 0:
                     top_status = sorted_abstracted_states[0]
-                    task_summary += f" | Top: {top_status[0]} ({top_status[1]})"
+                    task_details += f" | Top Status: {top_status[0]} ({top_status[1]})"
                 
-                state_breakdown = f"""
-                                <div style="background: #e8f4fd; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; text-align: center; border: 1px solid #b3d9f2;">
-                                    <div style="font-size: 11px; color: #1976d2; font-weight: 600; margin-bottom: 4px;">Task Summary</div>
-                                    <div style="font-size: 10px; color: #555; line-height: 1.3;">{task_summary}</div>
-                                </div>"""
-                
-                # Add top 2 status items
-                for j, (category, count) in enumerate(sorted_abstracted_states[:2]):  # Show top 2 states
-                    state_breakdown += f"""
-                                <div style="background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; padding: 6px 10px; margin-bottom: 6px; text-align: left;">
-                                    <span style="font-size: 11px; color: #555; font-weight: 500; float: left;">{category}</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: #0078d4; background: white; padding: 2px 6px; border-radius: 3px; min-width: 20px; text-align: center; border: 1px solid #dee2e6; float: right;">{count}</span>
-                                    <div style="clear: both;"></div>
-                                </div>"""
+                # Create detailed status breakdown (include all statuses)
+                status_breakdown = ""
+                for category, count in sorted_abstracted_states:
+                    if category == 'Done':
+                        status_breakdown += f"<strong>{category}: {count}</strong>, "
+                    else:
+                        status_breakdown += f"{category}: {count}, "
+                status_breakdown = status_breakdown.rstrip(", ")
                 
                 html_content += f"""
-                    <td style="width: 25%; padding: 0; text-align: center; vertical-align: top;">
-                        <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #0078d4; min-height: 120px;">
-                            <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 10px; text-align: center;">{engineer}</div>
-                            <div style="color: #0078d4; font-weight: 500; margin-bottom: 10px; text-align: center; font-size: 13px;">[ITEMS] {total_items} items</div>
-                            <div style="margin-top: 10px;">
-                                {state_breakdown}
+                        <td style="width: 50%; padding: 10px; vertical-align: top;" class="mobile-full">
+                            <div style="background: #f8f9fa; padding: 20px; border: 2px solid #0078d4; border-radius: 8px; margin: 5px;">
+                                <h4 style="margin: 0 0 15px 0; color: #0078d4; font-size: 18px; font-weight: 600;" class="mobile-text">{engineer}</h4>
+                                <div style="background: #e8f4fd; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #b3d9f2;">
+                                    <div style="font-size: 16px; color: #1976d2; font-weight: 600; margin-bottom: 8px;" class="mobile-text">Task Summary</div>
+                                    <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 8px;" class="mobile-text">{task_details}</div>
+                                    <div style="font-size: 14px; color: #333; line-height: 1.5;" class="mobile-text">All Statuses: {status_breakdown}</div>
+                                </div>
                             </div>
-                        </div>
-                    </td>"""
+                        </td>"""
             
-            # Fill remaining cells in second row if less than 8 engineers
-            for i in range(len(engineer_list), 8):
-                html_content += '<td style="width: 25%; padding: 0;"></td>'
+            # Fill remaining cell if odd number of engineers
+            if len(engineer_list) % 2 == 1 and row_start == len(engineer_list) - 1:
+                html_content += '<td style="width: 50%; padding: 10px;" class="mobile-full"></td>'
             
             html_content += "</tr>"
         
         html_content += """
+                            </table>
+                        </td>
+                    </tr>
                 </table>
-            </div>
-        </div>
+            </td>
+        </tr>
 """
     
     # Add footer
     html_content += f"""
-        <div style="background: #f8f9fa; padding: 15px 20px; text-align: center; color: #666; font-size: 12px;">
-            <p style="margin: 0;">Generated by <span style="color: #0078d4; font-weight: 600;">Azure DevOps AI Agent</span> | 
-            Sprint Period: <span style="color: #0078d4; font-weight: 600;">{sprint_start}</span> to <span style="color: #0078d4; font-weight: 600;">{sprint_end}</span></p>
-        </div>
-    </div>
+        <tr>
+            <td style="background: #f8f9fa; padding: 20px; text-align: center; color: #333; font-size: 14px; font-weight: 500;">
+                Generated by <span style="color: #0078d4; font-weight: 600;">Azure DevOps AI Agent</span> | 
+                Sprint Period: <span style="color: #0078d4; font-weight: 600;">{sprint_start}</span> to <span style="color: #0078d4; font-weight: 600;">{sprint_end}</span>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>"""
     
