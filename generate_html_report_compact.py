@@ -19,6 +19,14 @@ def generate_compact_html_report(json_file):
     sprint_start = sprint_period['start_date']
     sprint_end = sprint_period['end_date']
     
+    # Calculate global status summary
+    global_status_counts = {}
+    for result in sprint_data.values():
+        for engineer_metrics in result['engineer_metrics'].values():
+            for state, count in engineer_metrics.get('states', {}).items():
+                category = Config.get_state_category(state)
+                global_status_counts[category] = global_status_counts.get(category, 0) + count
+    
     # Generate compact HTML content with inline styles
     html_content = f"""
 <!DOCTYPE html>
@@ -35,6 +43,40 @@ def generate_compact_html_report(json_file):
             <h1 style="margin: 0; font-size: 22px; font-weight: 300;">🚀 Azure DevOps Sprint Report</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 13px;">Sprint Period: {sprint_start} to {sprint_end}</p>
             <p style="margin: 3px 0 0 0; opacity: 0.9; font-size: 13px;">Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
+        </div>
+        
+        <!-- Concise Task Summary -->
+        <div style="margin: 15px 10px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; text-align: center;">📋 Sprint Task Overview</h2>
+            <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; margin-bottom: 15px;">
+                <div style="flex: 1; min-width: 120px; margin: 5px;">
+                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sum(result['total_items'] for result in sprint_data.values())}</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Total Tasks</div>
+                </div>
+                <div style="flex: 1; min-width: 120px; margin: 5px;">
+                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{len(sprint_data)}</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Projects</div>
+                </div>
+                <div style="flex: 1; min-width: 120px; margin: 5px;">
+                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sum(len(result['engineer_metrics']) for result in sprint_data.values())}</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Engineers</div>
+                </div>
+                <div style="flex: 1; min-width: 120px; margin: 5px;">
+                    <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px;">{sprint_start} to {sprint_end}</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Sprint Period</div>
+                </div>
+            </div>
+            <!-- Status Breakdown -->
+            <div style="background: rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; margin-top: 10px;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; text-align: center;">📊 Status Breakdown</div>
+                <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap;">
+                    {''.join([f'''
+                    <div style="flex: 1; min-width: 80px; margin: 3px;">
+                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 2px;">{count}</div>
+                        <div style="font-size: 10px; opacity: 0.8;">{status}</div>
+                    </div>''' for status, count in sorted(global_status_counts.items(), key=lambda x: x[1], reverse=True)[:6]])}
+                </div>
+            </div>
         </div>
         
         <!-- Summary Cards -->
@@ -143,6 +185,22 @@ def generate_compact_html_report(json_file):
         html_content += """
                     </tr>
                 </table>
+            </div>
+            
+            <!-- Task Summary -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">📋 Task Summary</h3>
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; border-left: 4px solid #28a745;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 14px; font-weight: 600; color: #333;">Total Tasks in Current Sprint</span>
+                        <span style="font-size: 18px; font-weight: 700; color: #28a745; background: white; padding: 6px 12px; border-radius: 6px; border: 1px solid #dee2e6;">{result['total_items']}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; line-height: 1.4;">
+                        <strong>Active Engineers:</strong> {len(result['engineer_metrics'])} | 
+                        <strong>Status Categories:</strong> {len(status_counts)} | 
+                        <strong>Sprint Period:</strong> {sprint_start} to {sprint_end}
+                    </div>
+                </div>
             </div>
             
             <!-- Engineer Breakdown -->
