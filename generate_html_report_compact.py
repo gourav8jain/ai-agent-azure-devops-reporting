@@ -170,9 +170,19 @@ def generate_compact_html_report(json_file):
                     <tr>
                         <td style="padding: 15px 0;">
                             <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border: 1px solid #cce7ff; margin-bottom: 15px;">
-                                <h3 style="color: #1976d2; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;" class="mobile-text">Project Status Summary</h3>
-                                <div style="font-size: 14px; color: #333; line-height: 1.6;" class="mobile-text">
-                                    {''.join([f'• <strong>{status}: {count}</strong><br>' if status == 'Done' else f'• {status}: {count}<br>' for status, count in sorted_status_counts])}
+                                <h3 style="color: #1976d2; font-size: 16px; margin: 0 0 15px 0; font-weight: 600;" class="mobile-text">Project Status Summary</h3>
+                                <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;" class="mobile-text">
+                                    {''.join([f'''
+                                    <div style="background: {'#d4edda' if status == 'Done' else '#fff3cd' if status == 'In Progress' else '#f8f9fa'}; 
+                                                color: {'#155724' if status == 'Done' else '#856404' if status == 'In Progress' else '#333'}; 
+                                                padding: 12px 16px; border-radius: 20px; font-size: 16px; font-weight: 600; 
+                                                border: 2px solid {'#c3e6cb' if status == 'Done' else '#ffeaa7' if status == 'In Progress' else '#dee2e6'}; 
+                                                text-align: center; min-width: 80px;">
+                                        <div style="font-size: 12px; font-weight: 500; margin-bottom: 4px;">{status}</div>
+                                        <div style="font-size: 24px; font-weight: 700; color: {'#0f5132' if status == 'Done' else '#664d03' if status == 'In Progress' else '#0078d4'};">
+                                            {count}
+                                        </div>
+                                    </div>''' for status, count in sorted_status_counts])}
                                 </div>
                             </div>
                         </td>
@@ -213,14 +223,30 @@ def generate_compact_html_report(json_file):
                     top_status = sorted_abstracted_states[0]
                     task_details += f" | Top Status: {top_status[0]} ({top_status[1]})"
                 
-                # Create detailed status breakdown with bullet points (include all statuses)
+                # Create detailed status breakdown with highlighted numbers (include all statuses)
                 status_breakdown = ""
                 for category, count in sorted_abstracted_states:
                     if category == 'Done':
-                        status_breakdown += f"• <strong>{category}: {count}</strong><br>"
+                        status_breakdown += f'''
+                        <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; 
+                                    border: 2px solid #c3e6cb; display: inline-block; margin: 3px; text-align: center; min-width: 60px;">
+                            <div style="font-size: 10px; font-weight: 500; margin-bottom: 2px;">{category}</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #0f5132;">{count}</div>
+                        </div>'''
+                    elif category == 'In Progress':
+                        status_breakdown += f'''
+                        <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; 
+                                    border: 2px solid #ffeaa7; display: inline-block; margin: 3px; text-align: center; min-width: 60px;">
+                            <div style="font-size: 10px; font-weight: 500; margin-bottom: 2px;">{category}</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #664d03;">{count}</div>
+                        </div>'''
                     else:
-                        status_breakdown += f"• {category}: {count}<br>"
-                status_breakdown = status_breakdown.rstrip("<br>")
+                        status_breakdown += f'''
+                        <div style="background: #f8f9fa; color: #333; padding: 8px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; 
+                                    border: 2px solid #dee2e6; display: inline-block; margin: 3px; text-align: center; min-width: 60px;">
+                            <div style="font-size: 10px; font-weight: 500; margin-bottom: 2px;">{category}</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #0078d4;">{count}</div>
+                        </div>'''
                 
                 # Create smart task names summary (summarize instead of trim)
                 tasks = metrics.get('tasks', [])
