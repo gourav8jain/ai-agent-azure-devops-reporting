@@ -158,6 +158,25 @@ def generate_compact_html_report(json_file):
         # Sort status counts by count
         sorted_status_counts = sorted(status_counts.items(), key=lambda x: x[1], reverse=True)
         
+        # Build status summary HTML
+        status_html = ""
+        for i, (status, count) in enumerate(sorted_status_counts):
+            if i > 0 and i % 3 == 0:
+                status_html += "</tr><tr>"
+            status_html += f"""
+                        <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 3px solid #0078d4; min-height: 70px;">
+                                <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; text-align: center;">{status}</div>
+                                <div style="font-size: 20px; font-weight: 700; color: #0078d4; text-align: center;">{count}</div>
+                            </div>
+                        </td>"""
+        
+        # Fill remaining cells if needed
+        remaining_cells = 3 - (len(sorted_status_counts) % 3)
+        if remaining_cells < 3:
+            for _ in range(remaining_cells):
+                status_html += '<td style="width: 33.33%; padding: 0;"></td>'
+        
         html_content += f"""
         <!-- Project Section: {display_name} -->
         <div style="padding: 20px; border-bottom: 1px solid #e9ecef;">
@@ -171,27 +190,7 @@ def generate_compact_html_report(json_file):
             <div style="margin-bottom: 20px;">
                 <h3 style="color: #333; font-size: 16px; margin-bottom: 15px; font-weight: 600;">[STATUS] Status Level Summary</h3>
                 <table style="width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 auto;">
-                    <tr>"""
-        
-        # Add status items in rows of 3
-        for i, (status, count) in enumerate(sorted_status_counts):
-            if i > 0 and i % 3 == 0:
-                html_content += "</tr><tr>"
-            html_content += f"""
-                        <td style="width: 33.33%; padding: 0; text-align: center; vertical-align: top;">
-                            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 3px solid #0078d4; min-height: 70px;">
-                                <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; text-align: center;">{status}</div>
-                                <div style="font-size: 20px; font-weight: 700; color: #0078d4; text-align: center;">{count}</div>
-                            </div>
-                        </td>"""
-        
-        # Fill remaining cells if needed
-        remaining_cells = 3 - (len(sorted_status_counts) % 3)
-        if remaining_cells < 3:
-            for _ in range(remaining_cells):
-                html_content += '<td style="width: 33.33%; padding: 0;"></td>'
-        
-        html_content += """
+                    <tr>{status_html}
                     </tr>
                 </table>
             </div>
