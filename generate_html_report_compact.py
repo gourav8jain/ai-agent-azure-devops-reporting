@@ -49,7 +49,7 @@ def generate_compact_html_report(json_file):
         <!-- Header -->
         <tr>
             <td style="background: #0078d4; color: white; padding: 20px; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Azure DevOps Sprint Report</h1>
+                <h1 style="margin: 0; font-size: 24px; font-weight: 600;">IOL Pay + VCC Sprint Report - Daily</h1>
                 <p style="margin: 10px 0 0 0; font-size: 14px;">Sprint Period: {sprint_start} to {sprint_end}</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px;">Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
             </td>
