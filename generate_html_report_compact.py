@@ -267,42 +267,23 @@ def generate_compact_html_report(json_file):
                             <div style="font-size: 18px; font-weight: 700; color: #0078d4;">{count}</div>
                         </div>'''
                 
-                # Create smart task names summary (summarize instead of trim)
+                # Create full task list summary with all tasks (no trimming)
                 tasks = metrics.get('tasks', [])
                 task_names_summary = ""
                 if tasks:
-                    # Get top 3 tasks (prioritize Done and In Progress)
-                    done_tasks = [t for t in tasks if Config.get_state_category(t['state']) == 'Done']
-                    in_progress_tasks = [t for t in tasks if Config.get_state_category(t['state']) == 'In Progress']
-                    other_tasks = [t for t in tasks if Config.get_state_category(t['state']) not in ['Done', 'In Progress']]
-                    
-                    # Combine and limit to 3 tasks
-                    priority_tasks = done_tasks[:2] + in_progress_tasks[:1] + other_tasks[:1]
-                    priority_tasks = priority_tasks[:3]
-                    
+                    # Order tasks for readability: Done, In Progress, then others
+                    preferred_order = ['Done', 'In Progress']
+                    def task_sort_key(t):
+                        category = Config.get_state_category(t['state'])
+                        return (preferred_order.index(category) if category in preferred_order else len(preferred_order), category, t['title'].lower())
+                    ordered_tasks = sorted(tasks, key=task_sort_key)
+
                     task_names = []
-                    for task in priority_tasks:
-                        title = task['title']
+                    for task in ordered_tasks:
+                        title = task['title']  # No trimming
                         state = Config.get_state_category(task['state'])
-                        
-                        # Smart summarization instead of simple truncation
-                        if len(title) > 50:
-                            # Try to break at word boundaries
-                            words = title.split()
-                            if len(words) > 1:
-                                # Find a good breaking point
-                                summary = ""
-                                for word in words:
-                                    if len(summary + " " + word) <= 47:  # Leave room for "..."
-                                        summary += (" " if summary else "") + word
-                                    else:
-                                        break
-                                title = summary + "..."
-                            else:
-                                title = title[:47] + "..."
-                        
                         task_names.append(f"• {title} ({state})")
-                    
+
                     task_names_summary = "<br>".join(task_names)
                 else:
                     task_names_summary = "No task details available"
