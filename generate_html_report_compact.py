@@ -179,6 +179,11 @@ def generate_compact_html_report(json_file):
                             <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border: 1px solid #cce7ff; margin-bottom: 15px;">
                                 <h3 style="color: #1976d2; font-size: 16px; margin: 0 0 15px 0; font-weight: 600;" class="mobile-text">Project Status Summary</h3>
                                 <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;" class="mobile-text">
+                                    <!-- Total pill -->
+                                    <div style="background: #e9f5ff; color: #0b5cab; padding: 12px 16px; border-radius: 20px; font-size: 16px; font-weight: 600; border: 2px solid #b6e0ff; text-align: center; min-width: 80px;">
+                                        <div style="font-size: 12px; font-weight: 500; margin-bottom: 4px;">Total</div>
+                                        <div style="font-size: 24px; font-weight: 700; color: #0b5cab;">{total_items}</div>
+                                    </div>
                                     {''.join([f'''
                                     <div style="background: {'#d4edda' if status == 'Done' else '#fff3cd' if status == 'In Progress' else '#f8f9fa'}; 
                                                 color: {'#155724' if status == 'Done' else '#856404' if status == 'In Progress' else '#333'}; 
