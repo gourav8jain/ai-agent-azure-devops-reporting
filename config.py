@@ -34,7 +34,7 @@ class Config:
                     'project_name': 'IOL_X',
                     'team_name': 'Charlie Backend Team',
                     'tags': [],
-                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog'  # Use specific iteration path
+                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-28'  # Current sprint: Iteration-28
                 }
             }
         },
@@ -45,7 +45,7 @@ class Config:
                     'project_name': 'VCCWallet',
                     'team_name': 'VCCWallet Team',
                     'tags': [],
-                    'iteration_path': None  # Use date-based filtering
+                    'iteration_path': 'VCCWallet\\Sprint 11'  # Current sprint: Sprint-11
                 }
             }
         }
@@ -62,21 +62,20 @@ class Config:
         'include_projects': ['IOL_X', 'VCCWallet']  # Updated to new projects
     }
 
-    # Sprint Period (Dynamic based on current date)
+    # Sprint Period (Current Sprint - October 2024)
     @classmethod
     def get_current_sprint_period(cls):
-        """Determine the current 14-day sprint period.
-
-        Rule: Sprints start on Tuesday and last 14 days.
-        Anchor date: 2024-01-02 (Tuesday). The current date maps into one of these buckets.
-        Returns display strings as well as ISO timestamps for WIQL.
+        """Get the current sprint period based on provided sprint schedules.
+        
+        Current Sprint (October 2024):
+        - IOL Pay: Iteration-28 (Oct 14 - Nov 3, 3 weeks)
+        - VCC: Sprint-11 (October 14 - October 27, 2 weeks)
+        
+        Using the overlapping period: Oct 14 - Oct 27 (2 weeks)
         """
-        now = datetime.now()
-        anchor = datetime(2024, 1, 9)  # Tuesday anchor aligned so 17-Sep-2025 -> 16-Sep-2025
-        days_since_anchor = (now.date() - anchor.date()).days
-        sprint_cycle = days_since_anchor // 14
-        sprint_start = anchor + timedelta(days=sprint_cycle * 14)
-        sprint_end = sprint_start + timedelta(days=13)
+        # Current sprint dates based on provided information
+        sprint_start = datetime(2024, 10, 14)  # October 14, 2024
+        sprint_end = datetime(2024, 10, 27)    # October 27, 2024
 
         start_date_str = sprint_start.strftime('%d-%b-%Y')
         end_date_str = sprint_end.strftime('%d-%b-%Y')
