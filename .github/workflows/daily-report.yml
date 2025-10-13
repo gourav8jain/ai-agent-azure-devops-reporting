@@ -16,6 +16,7 @@ jobs:
       AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      EMAIL_TO_MULTIPLE: ${{ secrets.EMAIL_TO_MULTIPLE }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
     
@@ -52,6 +53,7 @@ jobs:
           echo "   AZURE_DEVOPS_PAT: ${AZURE_DEVOPS_PAT:0:10}..."
           echo "   EMAIL_FROM: ${EMAIL_FROM:0:10}..."
           echo "   EMAIL_TO: ${EMAIL_TO:0:10}..."
+          echo "   EMAIL_TO_MULTIPLE: ${EMAIL_TO_MULTIPLE:0:30}..."
           echo "   SMTP_USERNAME: ${SMTP_USERNAME:0:10}..."
           echo "   SMTP_PASSWORD: ${SMTP_PASSWORD:0:10}..."
           
@@ -64,15 +66,30 @@ jobs:
           echo "   AZURE_DEVOPS_PAT: ${AZURE_DEVOPS_PAT:+'✅ Set'}${AZURE_DEVOPS_PAT:-'❌ Not set'}"
           echo "   EMAIL_FROM: ${EMAIL_FROM:+'✅ Set'}${EMAIL_FROM:-'❌ Not set'}"
           echo "   EMAIL_TO: ${EMAIL_TO:+'✅ Set'}${EMAIL_TO:-'❌ Not set'}"
+          echo "   EMAIL_TO_MULTIPLE: ${EMAIL_TO_MULTIPLE:+'✅ Set'}${EMAIL_TO_MULTIPLE:-'❌ Not set'}"
           echo "   SMTP_USERNAME: ${SMTP_USERNAME:+'✅ Set'}${SMTP_USERNAME:-'❌ Not set'}"
           echo "   SMTP_PASSWORD: ${SMTP_PASSWORD:+'✅ Set'}${SMTP_PASSWORD:-'❌ Not set'}"
           echo ""
-          echo "   Total set: $(echo "$AZURE_DEVOPS_ORG$AZURE_DEVOPS_PAT$EMAIL_FROM$EMAIL_TO$SMTP_USERNAME$SMTP_PASSWORD" | grep -o . | wc -l)/6"
+          echo "   Total set: $(echo "$AZURE_DEVOPS_ORG$AZURE_DEVOPS_PAT$EMAIL_FROM$EMAIL_TO$EMAIL_TO_MULTIPLE$SMTP_USERNAME$SMTP_PASSWORD" | grep -o . | wc -l)/7"
           
       - name: Validate Configuration
         run: |
           echo "🔧 Validating configuration..."
           python3 -c "from config import Config; print('✅ Config imported successfully'); print('Validating config...'); result = Config.validate_config(); print('Validation result:', result)"
+          
+      - name: Show Email Recipients
+        run: |
+          echo "📧 Email Recipients Configuration:"
+          python3 -c "
+          from config import Config
+          recipients = Config.get_email_recipients()
+          print(f'   Recipients: {recipients}')
+          print(f'   Count: {len(recipients)}')
+          if Config.EMAIL_TO_MULTIPLE:
+              print(f'   Using EMAIL_TO_MULTIPLE: {Config.EMAIL_TO_MULTIPLE}')
+          else:
+              print(f'   Using EMAIL_TO: {Config.EMAIL_TO}')
+          "
           
       - name: Generate Sprint Report
         run: |
