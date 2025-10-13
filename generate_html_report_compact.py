@@ -168,6 +168,16 @@ def generate_compact_html_report(json_file):
                         </td>
                     </tr>
                     <tr>
+                        <td style="padding: 15px 0;">
+                            <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border: 1px solid #cce7ff; margin-bottom: 15px;">
+                                <h3 style="color: #1976d2; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;" class="mobile-text">Project Status Summary</h3>
+                                <div style="font-size: 14px; color: #333; line-height: 1.6;" class="mobile-text">
+                                    {''.join([f'• <strong>{status}: {count}</strong><br>' if status == 'Done' else f'• {status}: {count}<br>' for status, count in sorted_status_counts])}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
                         <td style="padding: 20px 0;">
                             <h3 style="color: #333; font-size: 18px; margin: 0 0 15px 0; font-weight: 600;" class="mobile-text">Engineer Breakdown with Task Details</h3>
                             <table style="width: 100%; border-collapse: collapse;">
@@ -203,16 +213,16 @@ def generate_compact_html_report(json_file):
                     top_status = sorted_abstracted_states[0]
                     task_details += f" | Top Status: {top_status[0]} ({top_status[1]})"
                 
-                # Create detailed status breakdown (include all statuses)
+                # Create detailed status breakdown with bullet points (include all statuses)
                 status_breakdown = ""
                 for category, count in sorted_abstracted_states:
                     if category == 'Done':
-                        status_breakdown += f"<strong>{category}: {count}</strong>, "
+                        status_breakdown += f"• <strong>{category}: {count}</strong><br>"
                     else:
-                        status_breakdown += f"{category}: {count}, "
-                status_breakdown = status_breakdown.rstrip(", ")
+                        status_breakdown += f"• {category}: {count}<br>"
+                status_breakdown = status_breakdown.rstrip("<br>")
                 
-                # Create concise task names summary
+                # Create smart task names summary (summarize instead of trim)
                 tasks = metrics.get('tasks', [])
                 task_names_summary = ""
                 if tasks:
@@ -227,8 +237,25 @@ def generate_compact_html_report(json_file):
                     
                     task_names = []
                     for task in priority_tasks:
-                        title = task['title'][:40] + "..." if len(task['title']) > 40 else task['title']
+                        title = task['title']
                         state = Config.get_state_category(task['state'])
+                        
+                        # Smart summarization instead of simple truncation
+                        if len(title) > 50:
+                            # Try to break at word boundaries
+                            words = title.split()
+                            if len(words) > 1:
+                                # Find a good breaking point
+                                summary = ""
+                                for word in words:
+                                    if len(summary + " " + word) <= 47:  # Leave room for "..."
+                                        summary += (" " if summary else "") + word
+                                    else:
+                                        break
+                                title = summary + "..."
+                            else:
+                                title = title[:47] + "..."
+                        
                         task_names.append(f"• {title} ({state})")
                     
                     task_names_summary = "<br>".join(task_names)
