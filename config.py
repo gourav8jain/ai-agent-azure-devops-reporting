@@ -19,7 +19,7 @@ class Config:
     # Email Configuration
     # Priority: GitHub Secrets > .env file > Default Values
     EMAIL_FROM = os.getenv('EMAIL_FROM', 'gourav8jain@gmail.com')
-    EMAIL_TO = os.getenv('EMAIL_TO', 'gourav8jain@gmail.com')
+    EMAIL_TO = os.getenv('EMAIL_TO', 'gourav.jain@iol.world')
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
     SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
     SMTP_USERNAME = os.getenv('SMTP_USERNAME', 'gourav8jain@gmail.com')
