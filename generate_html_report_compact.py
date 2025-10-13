@@ -212,6 +212,29 @@ def generate_compact_html_report(json_file):
                         status_breakdown += f"{category}: {count}, "
                 status_breakdown = status_breakdown.rstrip(", ")
                 
+                # Create concise task names summary
+                tasks = metrics.get('tasks', [])
+                task_names_summary = ""
+                if tasks:
+                    # Get top 3 tasks (prioritize Done and In Progress)
+                    done_tasks = [t for t in tasks if Config.get_state_category(t['state']) == 'Done']
+                    in_progress_tasks = [t for t in tasks if Config.get_state_category(t['state']) == 'In Progress']
+                    other_tasks = [t for t in tasks if Config.get_state_category(t['state']) not in ['Done', 'In Progress']]
+                    
+                    # Combine and limit to 3 tasks
+                    priority_tasks = done_tasks[:2] + in_progress_tasks[:1] + other_tasks[:1]
+                    priority_tasks = priority_tasks[:3]
+                    
+                    task_names = []
+                    for task in priority_tasks:
+                        title = task['title'][:40] + "..." if len(task['title']) > 40 else task['title']
+                        state = Config.get_state_category(task['state'])
+                        task_names.append(f"• {title} ({state})")
+                    
+                    task_names_summary = "<br>".join(task_names)
+                else:
+                    task_names_summary = "No task details available"
+                
                 html_content += f"""
                         <td style="width: 50%; padding: 10px; vertical-align: top;" class="mobile-full">
                             <div style="background: #f8f9fa; padding: 20px; border: 2px solid #0078d4; border-radius: 8px; margin: 5px;">
@@ -219,7 +242,11 @@ def generate_compact_html_report(json_file):
                                 <div style="background: #e8f4fd; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #b3d9f2;">
                                     <div style="font-size: 16px; color: #1976d2; font-weight: 600; margin-bottom: 8px;" class="mobile-text">Task Summary</div>
                                     <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 8px;" class="mobile-text">{task_details}</div>
-                                    <div style="font-size: 14px; color: #333; line-height: 1.5;" class="mobile-text">All Statuses: {status_breakdown}</div>
+                                    <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 8px;" class="mobile-text">All Statuses: {status_breakdown}</div>
+                                </div>
+                                <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; border: 1px solid #cce7ff;">
+                                    <div style="font-size: 16px; color: #1976d2; font-weight: 600; margin-bottom: 8px;" class="mobile-text">Key Tasks</div>
+                                    <div style="font-size: 13px; color: #333; line-height: 1.4;" class="mobile-text">{task_names_summary}</div>
                                 </div>
                             </div>
                         </td>"""

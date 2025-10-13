@@ -89,7 +89,7 @@ def get_engineer_metrics(organization, project, work_item_ids, headers):
         batch_ids = work_item_ids[i:i + batch_size]
         ids_param = ','.join(map(str, batch_ids))
         
-        work_items_url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/workitems?ids={ids_param}&$fields=System.Id,System.AssignedTo,System.State,System.Tags&api-version=7.0"
+        work_items_url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/workitems?ids={ids_param}&$fields=System.Id,System.AssignedTo,System.State,System.Tags,System.Title&api-version=7.0"
         
         try:
             response = requests.get(work_items_url, headers=headers)
@@ -111,6 +111,7 @@ def get_engineer_metrics(organization, project, work_item_ids, headers):
         assigned_to = fields.get('System.AssignedTo', {})
         state = fields.get('System.State', 'Unknown')
         tags = fields.get('System.Tags', '')
+        title = fields.get('System.Title', 'Untitled Task')
         
         # Get assignee name
         if assigned_to and 'displayName' in assigned_to:
@@ -122,12 +123,21 @@ def get_engineer_metrics(organization, project, work_item_ids, headers):
         if assignee not in engineer_metrics:
             engineer_metrics[assignee] = {
                 'total_items': 0,
-                'states': {}
+                'states': {},
+                'tasks': []
             }
         
         # Update metrics
         engineer_metrics[assignee]['total_items'] += 1
         engineer_metrics[assignee]['states'][state] = engineer_metrics[assignee]['states'].get(state, 0) + 1
+        
+        # Store task details
+        task_info = {
+            'title': title,
+            'state': state,
+            'tags': tags
+        }
+        engineer_metrics[assignee]['tasks'].append(task_info)
         
         # Store tags for verification
         if 'tags' not in engineer_metrics[assignee]:
