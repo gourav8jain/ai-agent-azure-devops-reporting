@@ -267,26 +267,45 @@ def generate_compact_html_report(json_file):
                             <div style="font-size: 18px; font-weight: 700; color: #0078d4;">{count}</div>
                         </div>'''
                 
-                # Create full task list summary with all tasks (no trimming)
+                # Create pending-focused task lists for leadership visibility
                 tasks = metrics.get('tasks', [])
-                task_names_summary = ""
+                pending_summary = ""
+                pending_list_html = ""
+                completed_list_html = ""
                 if tasks:
-                    # Order tasks for readability: Done, In Progress, then others
-                    preferred_order = ['Done', 'In Progress']
-                    def task_sort_key(t):
-                        category = Config.get_state_category(t['state'])
-                        return (preferred_order.index(category) if category in preferred_order else len(preferred_order), category, t['title'].lower())
-                    ordered_tasks = sorted(tasks, key=task_sort_key)
+                    # Split tasks into pending (not Done) and completed (Done)
+                    pending_categories = ['To Do', 'In Progress', 'Ready for QA', 'QA in Progress', 'Ready for Release']
+                    pending_tasks = []
+                    completed_tasks = []
+                    pending_counts = {cat: 0 for cat in pending_categories}
+                    for t in tasks:
+                        cat = Config.get_state_category(t['state'])
+                        if cat == 'Done':
+                            completed_tasks.append(t)
+                        else:
+                            pending_tasks.append(t)
+                            if cat in pending_counts:
+                                pending_counts[cat] += 1
 
-                    task_names = []
-                    for task in ordered_tasks:
-                        title = task['title']  # No trimming
-                        state = Config.get_state_category(task['state'])
-                        task_names.append(f"• {title} ({state})")
+                    # Build pending summary like: Pending: N — In Progress 3, To Do 2, QA in Progress 1
+                    total_pending = len(pending_tasks)
+                    parts = [f"{cat} {count}" for cat, count in pending_counts.items() if count > 0]
+                    pending_summary = f"Pending: {total_pending}" + (" — " + ", ".join(parts) if parts else "")
 
-                    task_names_summary = "<br>".join(task_names)
+                    # Sort lists for readability
+                    def by_title(t):
+                        return t['title'].lower()
+                    pending_tasks_sorted = sorted(pending_tasks, key=by_title)
+                    completed_tasks_sorted = sorted(completed_tasks, key=by_title)
+
+                    if pending_tasks_sorted:
+                        items = [f"• {t['title']} ({Config.get_state_category(t['state'])})" for t in pending_tasks_sorted]
+                        pending_list_html = "<br>".join(items)
+                    if completed_tasks_sorted:
+                        items = [f"• {t['title']} ({Config.get_state_category(t['state'])})" for t in completed_tasks_sorted]
+                        completed_list_html = "<br>".join(items)
                 else:
-                    task_names_summary = "No task details available"
+                    pending_summary = "No task details available"
                 
                 html_content += f"""
                         <td style="width: 50%; padding: 10px; vertical-align: top;" class="mobile-full">
@@ -298,8 +317,11 @@ def generate_compact_html_report(json_file):
                                     <div style="font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 8px;" class="mobile-text">All Statuses: {status_breakdown}</div>
                                 </div>
                                 <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; border: 1px solid #cce7ff;">
-                                    <div style="font-size: 16px; color: #1976d2; font-weight: 600; margin-bottom: 8px;" class="mobile-text">Key Tasks</div>
-                                    <div style="font-size: 13px; color: #333; line-height: 1.4;" class="mobile-text">{task_names_summary}</div>
+                                    <div style="font-size: 16px; color: #1976d2; font-weight: 600; margin-bottom: 6px;" class="mobile-text">Key Tasks</div>
+                                    <div style="font-size: 13px; color: #0b5cab; font-weight: 600; margin-bottom: 6px;" class="mobile-text">{pending_summary}</div>
+                                    {f'<div style="font-size: 13px; color: #333; line-height: 1.4; margin-bottom: 8px;" class="mobile-text">{pending_list_html}</div>' if pending_list_html else ''}
+                                    {f'<div style="font-size: 13px; color: #2e7d32; font-weight: 600; margin-top: 4px;" class="mobile-text">Completed</div>' if completed_list_html else ''}
+                                    {f'<div style="font-size: 13px; color: #333; line-height: 1.4;" class="mobile-text">{completed_list_html}</div>' if completed_list_html else ''}
                                 </div>
                             </div>
                         </td>"""
