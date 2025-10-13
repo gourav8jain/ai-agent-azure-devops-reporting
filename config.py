@@ -20,6 +20,10 @@ class Config:
     # Priority: GitHub Secrets > .env file > Default Values
     EMAIL_FROM = os.getenv('EMAIL_FROM', 'gourav8jain@gmail.com')
     EMAIL_TO = os.getenv('EMAIL_TO', 'gourav.jain@iol.world')
+    
+    # Multiple Email Recipients (comma-separated)
+    # Example: "user1@company.com,user2@company.com,user3@company.com"
+    EMAIL_TO_MULTIPLE = os.getenv('EMAIL_TO_MULTIPLE', '')
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
     SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
     SMTP_USERNAME = os.getenv('SMTP_USERNAME', 'gourav8jain@gmail.com')
@@ -208,3 +212,14 @@ class Config:
             if state in states:
                 return category
         return 'Other'
+    
+    @classmethod
+    def get_email_recipients(cls):
+        """Get email recipients - either single or multiple"""
+        if cls.EMAIL_TO_MULTIPLE and cls.EMAIL_TO_MULTIPLE.strip():
+            # Multiple recipients (comma-separated)
+            recipients = [email.strip() for email in cls.EMAIL_TO_MULTIPLE.split(',') if email.strip()]
+            return recipients
+        else:
+            # Single recipient
+            return [cls.EMAIL_TO] if cls.EMAIL_TO else []

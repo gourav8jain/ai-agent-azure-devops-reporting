@@ -4,6 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 from dotenv import load_dotenv
+from config import Config
 
 # Load .env file for local development (if it exists)
 # GitHub Actions will use repository secrets instead
@@ -12,28 +13,32 @@ load_dotenv()
 def send_email_directly(html_filename, html_content):
     """Send email directly using Gmail credentials from environment variables"""
     
-    # Gmail credentials from environment variables
-    EMAIL_FROM = os.getenv('EMAIL_FROM', '')
-    EMAIL_TO = os.getenv('EMAIL_TO', '')
-    SMTP_SERVER = 'smtp.gmail.com'
-    SMTP_PORT = 587
-    SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
-    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+    # Get email configuration from Config
+    EMAIL_FROM = Config.EMAIL_FROM
+    EMAIL_TO_MULTIPLE = Config.EMAIL_TO_MULTIPLE
+    EMAIL_TO = Config.EMAIL_TO
+    SMTP_SERVER = Config.SMTP_SERVER
+    SMTP_PORT = Config.SMTP_PORT
+    SMTP_USERNAME = Config.SMTP_USERNAME
+    SMTP_PASSWORD = Config.SMTP_PASSWORD
     
-    if not all([EMAIL_FROM, EMAIL_TO, SMTP_USERNAME, SMTP_PASSWORD]):
+    # Get recipients (single or multiple)
+    recipients = Config.get_email_recipients()
+    
+    if not all([EMAIL_FROM, SMTP_USERNAME, SMTP_PASSWORD]) or not recipients:
         print("❌ Missing required email credentials in environment variables")
-        print("Please set EMAIL_FROM, EMAIL_TO, SMTP_USERNAME, and SMTP_PASSWORD")
+        print("Please set EMAIL_FROM, EMAIL_TO (or EMAIL_TO_MULTIPLE), SMTP_USERNAME, and SMTP_PASSWORD")
         return False
     
     print(f"📧 Sending email with credentials from environment...")
     print(f"   From: {EMAIL_FROM}")
-    print(f"   To: {EMAIL_TO}")
+    print(f"   To: {', '.join(recipients)}")
     print(f"   SMTP: {SMTP_SERVER}:{SMTP_PORT}")
     
     # Create message
     msg = MIMEMultipart('alternative')
     msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_TO
+    msg['To'] = ', '.join(recipients)  # Multiple recipients
     msg['Subject'] = f"Azure DevOps Sprint Report - {datetime.now().strftime('%B %d, %Y')}"
     
     # Create text body
@@ -72,7 +77,7 @@ For full formatted report, please view this email in HTML format.
         
         print(f"   📤 Sending email...")
         text = msg.as_string()
-        server.sendmail(EMAIL_FROM, EMAIL_TO, text)
+        server.sendmail(EMAIL_FROM, recipients, text)
         server.quit()
         
         print(f"   ✅ Email sent successfully!")
