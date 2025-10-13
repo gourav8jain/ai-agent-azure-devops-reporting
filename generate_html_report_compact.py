@@ -40,7 +40,7 @@ def generate_compact_html_report(json_file):
     <div style="max-width: 900px; margin: 0 auto; background: white; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,0.1); overflow: hidden;">
         <!-- Header -->
         <div style="background: #0078d4; color: white; padding: 15px; text-align: center;">
-            <h1 style="margin: 0; font-size: 22px; font-weight: 300;">[REPORT] Azure DevOps Sprint Report</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 300;">Azure DevOps Sprint Report</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 13px;">Sprint Period: {sprint_start} to {sprint_end}</p>
             <p style="margin: 3px 0 0 0; opacity: 0.9; font-size: 13px;">Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
         </div>
