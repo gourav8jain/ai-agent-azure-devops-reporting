@@ -1,0 +1,71 @@
+digraph AzureDevOpsSprintReportingERD {
+  rankdir=TB;
+  graph [splines=true, nodesep=0.8, ranksep=1.2];
+  node [shape=record, fontname="Helvetica", fontsize=10, style=filled, fillcolor=lightblue];
+  edge [arrowsize=0.8, fontname="Helvetica", fontsize=9];
+
+  // External Systems
+  "Azure DevOps" [shape=cylinder, fillcolor=lightcoral, label="{Azure DevOps|REST API|Work Items|Sprints|Teams}"];
+  "Gmail SMTP" [shape=cylinder, fillcolor=lightgreen, label="{Gmail SMTP|Email Delivery|Authentication}"];
+
+  // Core Data Entities
+  "Organization" [label="{Organization|id: string [PK]|name: string|projects: array}"];
+  "Project" [label="{Project|id: string [PK]|name: string|team_name: string|tags: array|iteration_path: string|iteration_display: string}"];
+  "Sprint" [label="{Sprint|id: string [PK]|name: string|start_date: date|end_date: date|iteration_path: string}"];
+  "WorkItem" [label="{WorkItem|id: integer [PK]|title: string|state: string|assigned_to: string|tags: array|created_date: datetime|changed_date: datetime}"];
+  "Engineer" [label="{Engineer|name: string [PK]|total_items: integer|states: object|tasks: array}"];
+
+  // Configuration Entities
+  "Config" [label="{Config|organizations: object|sprint_period: object|state_categories: object|email_settings: object}"];
+  "StateCategory" [label="{StateCategory|category: string [PK]|states: array}"];
+
+  // Data Storage
+  "SprintData" [label="{SprintData|timestamp: string [PK]|project_key: string|total_items: integer|engineer_metrics: object}"];
+  "HTMLReport" [label="{HTMLReport|timestamp: string [PK]|content: text|file_path: string}"];
+
+  // Relationships
+  "Azure DevOps" -> "Organization" [label="contains"];
+  "Organization" -> "Project" [label="1:N"];
+  "Project" -> "Sprint" [label="1:N"];
+  "Sprint" -> "WorkItem" [label="1:N"];
+  "WorkItem" -> "Engineer" [label="assigned to"];
+  "Engineer" -> "WorkItem" [label="owns"];
+  
+  "Config" -> "StateCategory" [label="defines"];
+  "StateCategory" -> "WorkItem" [label="categorizes"];
+  
+  "WorkItem" -> "SprintData" [label="aggregated into"];
+  "Engineer" -> "SprintData" [label="metrics in"];
+  "SprintData" -> "HTMLReport" [label="generates"];
+  
+  "HTMLReport" -> "Gmail SMTP" [label="sent via"];
+
+  // Data Flow Annotations
+  "Azure DevOps" -> "SprintData" [label="extracted via API", style=dashed, color=blue];
+  "SprintData" -> "HTMLReport" [label="processed by generator", style=dashed, color=green];
+  "HTMLReport" -> "Gmail SMTP" [label="delivered via email", style=dashed, color=red];
+
+  // Key Attributes
+  subgraph "Key Data Structures" {
+    "WorkItemStructure" [label="{WorkItem Structure|id: integer|title: string|state: string|assigned_to: string|tags: array}", fillcolor=lightyellow];
+    "EngineerMetrics" [label="{Engineer Metrics|name: string|total_items: integer|states: object|tasks: array}", fillcolor=lightyellow];
+    "ProjectSummary" [label="{Project Summary|project_key: string|total_items: integer|engineer_metrics: EngineerMetrics}", fillcolor=lightyellow];
+  }
+
+  // Status Categories
+  subgraph "Status Categories" {
+    "ToDo" [label="To Do\n(Open, TO DO, New, REQ-Review)", fillcolor=lightgray];
+    "InProgress" [label="In Progress\n(In Progress, Code Review)", fillcolor=yellow];
+    "ReadyForQA" [label="Ready for QA\n(On-QA, Fixed)", fillcolor=orange];
+    "QAInProgress" [label="QA in Progress\n(QA Testing, In QA)", fillcolor=lightcoral];
+    "ReadyForRelease" [label="Ready for Release\n(QA Reviewed, SIGNOFF)", fillcolor=lightgreen];
+    "Done" [label="Done\n(DONE, Done, Closed, Resolved)", fillcolor=green];
+  }
+
+  "StateCategory" -> "ToDo";
+  "StateCategory" -> "InProgress";
+  "StateCategory" -> "ReadyForQA";
+  "StateCategory" -> "QAInProgress";
+  "StateCategory" -> "ReadyForRelease";
+  "StateCategory" -> "Done";
+}
