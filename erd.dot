@@ -1,27 +1,27 @@
 digraph AzureDevOpsSprintReportingERD {
   rankdir=TB;
-  graph [splines=true, nodesep=1.5, ranksep=2.0, size="12,16", dpi=150];
-  node [shape=record, fontname="Helvetica", fontsize=12, style=filled, fillcolor=lightblue, width=2.5, height=1.0];
-  edge [arrowsize=1.0, fontname="Helvetica", fontsize=10];
+  graph [splines=true, nodesep=3.0, ranksep=4.0, size="20,24", dpi=200];
+  node [shape=record, fontname="Helvetica", fontsize=16, style=filled, fillcolor=lightblue, width=4.0, height=2.0];
+  edge [arrowsize=1.5, fontname="Helvetica", fontsize=14];
 
   // External Systems
-  "Azure DevOps" [shape=cylinder, fillcolor=lightcoral, label="{Azure DevOps|REST API|Work Items|Sprints|Teams}", width=3.0, height=1.5];
-  "Gmail SMTP" [shape=cylinder, fillcolor=lightgreen, label="{Gmail SMTP|Email Delivery|Authentication}", width=3.0, height=1.5];
+  "Azure DevOps" [shape=cylinder, fillcolor=lightcoral, label="{Azure DevOps|REST API|Work Items|Sprints|Teams}", width=5.0, height=2.5];
+  "Gmail SMTP" [shape=cylinder, fillcolor=lightgreen, label="{Gmail SMTP|Email Delivery|Authentication}", width=5.0, height=2.5];
 
   // Core Data Entities
-  "Organization" [label="{Organization|id: string [PK]|name: string|projects: array}"];
-  "Project" [label="{Project|id: string [PK]|name: string|team_name: string|tags: array|iteration_path: string|iteration_display: string}"];
-  "Sprint" [label="{Sprint|id: string [PK]|name: string|start_date: date|end_date: date|iteration_path: string}"];
-  "WorkItem" [label="{WorkItem|id: integer [PK]|title: string|state: string|assigned_to: string|tags: array|created_date: datetime|changed_date: datetime}"];
-  "Engineer" [label="{Engineer|name: string [PK]|total_items: integer|states: object|tasks: array}"];
+  "Organization" [label="{Organization|id: string [PK]|name: string|projects: array}", width=4.5, height=2.0];
+  "Project" [label="{Project|id: string [PK]|name: string|team_name: string|tags: array|iteration_path: string|iteration_display: string}", width=4.5, height=2.5];
+  "Sprint" [label="{Sprint|id: string [PK]|name: string|start_date: date|end_date: date|iteration_path: string}", width=4.5, height=2.0];
+  "WorkItem" [label="{WorkItem|id: integer [PK]|title: string|state: string|assigned_to: string|tags: array|created_date: datetime|changed_date: datetime}", width=4.5, height=2.5];
+  "Engineer" [label="{Engineer|name: string [PK]|total_items: integer|states: object|tasks: array}", width=4.5, height=2.0];
 
   // Configuration Entities
-  "Config" [label="{Config|organizations: object|sprint_period: object|state_categories: object|email_settings: object}"];
-  "StateCategory" [label="{StateCategory|category: string [PK]|states: array}"];
+  "Config" [label="{Config|organizations: object|sprint_period: object|state_categories: object|email_settings: object}", width=4.5, height=2.5];
+  "StateCategory" [label="{StateCategory|category: string [PK]|states: array}", width=4.5, height=2.0];
 
   // Data Storage
-  "SprintData" [label="{SprintData|timestamp: string [PK]|project_key: string|total_items: integer|engineer_metrics: object}"];
-  "HTMLReport" [label="{HTMLReport|timestamp: string [PK]|content: text|file_path: string}"];
+  "SprintData" [label="{SprintData|timestamp: string [PK]|project_key: string|total_items: integer|engineer_metrics: object}", width=4.5, height=2.5];
+  "HTMLReport" [label="{HTMLReport|timestamp: string [PK]|content: text|file_path: string}", width=4.5, height=2.0];
 
   // Relationships
   "Azure DevOps" -> "Organization" [label="contains"];
@@ -48,26 +48,26 @@ digraph AzureDevOpsSprintReportingERD {
   // Key Attributes
   subgraph cluster_structures {
     label="Key Data Structures";
-    fontsize=14;
+    fontsize=18;
     fontname="Helvetica-Bold";
     
-    "WorkItemStructure" [label="{WorkItem Structure|id: integer|title: string|state: string|assigned_to: string|tags: array}", fillcolor=lightyellow, width=2.5, height=1.2];
-    "EngineerMetrics" [label="{Engineer Metrics|name: string|total_items: integer|states: object|tasks: array}", fillcolor=lightyellow, width=2.5, height=1.2];
-    "ProjectSummary" [label="{Project Summary|project_key: string|total_items: integer|engineer_metrics: EngineerMetrics}", fillcolor=lightyellow, width=2.5, height=1.2];
+    "WorkItemStructure" [label="{WorkItem Structure|id: integer|title: string|state: string|assigned_to: string|tags: array}", fillcolor=lightyellow, width=4.0, height=2.0];
+    "EngineerMetrics" [label="{Engineer Metrics|name: string|total_items: integer|states: object|tasks: array}", fillcolor=lightyellow, width=4.0, height=2.0];
+    "ProjectSummary" [label="{Project Summary|project_key: string|total_items: integer|engineer_metrics: EngineerMetrics}", fillcolor=lightyellow, width=4.0, height=2.0];
   }
 
   // Status Categories
   subgraph cluster_status {
     label="Status Categories";
-    fontsize=14;
+    fontsize=18;
     fontname="Helvetica-Bold";
     
-    "ToDo" [label="To Do\n(Open, TO DO, New, REQ-Review)", fillcolor=lightgray, width=2.0, height=0.8];
-    "InProgress" [label="In Progress\n(In Progress, Code Review)", fillcolor=yellow, width=2.0, height=0.8];
-    "ReadyForQA" [label="Ready for QA\n(On-QA, Fixed)", fillcolor=orange, width=2.0, height=0.8];
-    "QAInProgress" [label="QA in Progress\n(QA Testing, In QA)", fillcolor=lightcoral, width=2.0, height=0.8];
-    "ReadyForRelease" [label="Ready for Release\n(QA Reviewed, SIGNOFF)", fillcolor=lightgreen, width=2.0, height=0.8];
-    "Done" [label="Done\n(DONE, Done, Closed, Resolved)", fillcolor=green, width=2.0, height=0.8];
+    "ToDo" [label="To Do\n(Open, TO DO, New, REQ-Review)", fillcolor=lightgray, width=3.0, height=1.5];
+    "InProgress" [label="In Progress\n(In Progress, Code Review)", fillcolor=yellow, width=3.0, height=1.5];
+    "ReadyForQA" [label="Ready for QA\n(On-QA, Fixed)", fillcolor=orange, width=3.0, height=1.5];
+    "QAInProgress" [label="QA in Progress\n(QA Testing, In QA)", fillcolor=lightcoral, width=3.0, height=1.5];
+    "ReadyForRelease" [label="Ready for Release\n(QA Reviewed, SIGNOFF)", fillcolor=lightgreen, width=3.0, height=1.5];
+    "Done" [label="Done\n(DONE, Done, Closed, Resolved)", fillcolor=green, width=3.0, height=1.5];
   }
 
   "StateCategory" -> "ToDo";
