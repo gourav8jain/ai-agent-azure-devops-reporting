@@ -1,79 +1,84 @@
-digraph AzureDevOpsSprintReportingERD {
-  rankdir=TB;
-  graph [splines=true, nodesep=3.0, ranksep=4.0, size="20,24", dpi=200];
-  node [shape=record, fontname="Helvetica", fontsize=16, style=filled, fillcolor=lightblue, width=4.0, height=2.0];
-  edge [arrowsize=1.5, fontname="Helvetica", fontsize=14];
-
-  // External Systems
-  "Azure DevOps" [shape=cylinder, fillcolor=lightcoral, label="{Azure DevOps|REST API|Work Items|Sprints|Teams}", width=5.0, height=2.5];
-  "Gmail SMTP" [shape=cylinder, fillcolor=lightgreen, label="{Gmail SMTP|Email Delivery|Authentication}", width=5.0, height=2.5];
-
-  // Core Data Entities
-  "Organization" [label="{Organization|id: string [PK]|name: string|projects: array}", width=4.5, height=2.0];
-  "Project" [label="{Project|id: string [PK]|name: string|team_name: string|tags: array|iteration_path: string|iteration_display: string}", width=4.5, height=2.5];
-  "Sprint" [label="{Sprint|id: string [PK]|name: string|start_date: date|end_date: date|iteration_path: string}", width=4.5, height=2.0];
-  "WorkItem" [label="{WorkItem|id: integer [PK]|title: string|state: string|assigned_to: string|tags: array|created_date: datetime|changed_date: datetime}", width=4.5, height=2.5];
-  "Engineer" [label="{Engineer|name: string [PK]|total_items: integer|states: object|tasks: array}", width=4.5, height=2.0];
-
-  // Configuration Entities
-  "Config" [label="{Config|organizations: object|sprint_period: object|state_categories: object|email_settings: object}", width=4.5, height=2.5];
-  "StateCategory" [label="{StateCategory|category: string [PK]|states: array}", width=4.5, height=2.0];
-
-  // Data Storage
-  "SprintData" [label="{SprintData|timestamp: string [PK]|project_key: string|total_items: integer|engineer_metrics: object}", width=4.5, height=2.5];
-  "HTMLReport" [label="{HTMLReport|timestamp: string [PK]|content: text|file_path: string}", width=4.5, height=2.0];
-
-  // Relationships
-  "Azure DevOps" -> "Organization" [label="contains"];
-  "Organization" -> "Project" [label="1:N"];
-  "Project" -> "Sprint" [label="1:N"];
-  "Sprint" -> "WorkItem" [label="1:N"];
-  "WorkItem" -> "Engineer" [label="assigned to"];
-  "Engineer" -> "WorkItem" [label="owns"];
-  
-  "Config" -> "StateCategory" [label="defines"];
-  "StateCategory" -> "WorkItem" [label="categorizes"];
-  
-  "WorkItem" -> "SprintData" [label="aggregated into"];
-  "Engineer" -> "SprintData" [label="metrics in"];
-  "SprintData" -> "HTMLReport" [label="generates"];
-  
-  "HTMLReport" -> "Gmail SMTP" [label="sent via"];
-
-  // Data Flow Annotations
-  "Azure DevOps" -> "SprintData" [label="extracted via API", style=dashed, color=blue];
-  "SprintData" -> "HTMLReport" [label="processed by generator", style=dashed, color=green];
-  "HTMLReport" -> "Gmail SMTP" [label="delivered via email", style=dashed, color=red];
-
-  // Key Attributes
-  subgraph cluster_structures {
-    label="Key Data Structures";
-    fontsize=18;
-    fontname="Helvetica-Bold";
-    
-    "WorkItemStructure" [label="{WorkItem Structure|id: integer|title: string|state: string|assigned_to: string|tags: array}", fillcolor=lightyellow, width=4.0, height=2.0];
-    "EngineerMetrics" [label="{Engineer Metrics|name: string|total_items: integer|states: object|tasks: array}", fillcolor=lightyellow, width=4.0, height=2.0];
-    "ProjectSummary" [label="{Project Summary|project_key: string|total_items: integer|engineer_metrics: EngineerMetrics}", fillcolor=lightyellow, width=4.0, height=2.0];
-  }
-
-  // Status Categories
-  subgraph cluster_status {
-    label="Status Categories";
-    fontsize=18;
-    fontname="Helvetica-Bold";
-    
-    "ToDo" [label="To Do\n(Open, TO DO, New, REQ-Review)", fillcolor=lightgray, width=3.0, height=1.5];
-    "InProgress" [label="In Progress\n(In Progress, Code Review)", fillcolor=yellow, width=3.0, height=1.5];
-    "ReadyForQA" [label="Ready for QA\n(On-QA, Fixed)", fillcolor=orange, width=3.0, height=1.5];
-    "QAInProgress" [label="QA in Progress\n(QA Testing, In QA)", fillcolor=lightcoral, width=3.0, height=1.5];
-    "ReadyForRelease" [label="Ready for Release\n(QA Reviewed, SIGNOFF)", fillcolor=lightgreen, width=3.0, height=1.5];
-    "Done" [label="Done\n(DONE, Done, Closed, Resolved)", fillcolor=green, width=3.0, height=1.5];
-  }
-
-  "StateCategory" -> "ToDo";
-  "StateCategory" -> "InProgress";
-  "StateCategory" -> "ReadyForQA";
-  "StateCategory" -> "QAInProgress";
-  "StateCategory" -> "ReadyForRelease";
-  "StateCategory" -> "Done";
+digraph ERD {
+  rankdir=LR;
+  graph [splines=true, nodesep=0.5, ranksep=1.0];
+  node  [shape=record, fontname="Helvetica", fontsize=10];
+  edge  [arrowsize=0.8, fontname="Helvetica", fontsize=9];
+  "public.account_details" [label="{public.account_details|domestic_only: boolean\lid: bigint [PK] [NOT NULL]\laccount: integer\lcurrency: character varying\lbrand: character varying\lrebate: integer\lcreated_by: character varying\lcreated_at: timestamp with time zone\lmodified_by: character varying\lmodified_at: timestamp with time zone\lis_active: boolean\lpool_name: character varying\l}"];
+  "public.account_details_test" [label="{public.account_details_test|brand: character varying\lrebate: integer\lcreated_by: character varying\lcreated_at: timestamp with time zone\lmodified_by: character varying\lmodified_at: timestamp with time zone\lis_active: boolean\ldomestic_only: boolean\lid: bigint [PK] [NOT NULL]\laccount: integer\lname: character varying\lprovider_account_id: character varying\lcurrency: character varying\l}"];
+  "public.account_entity" [label="{public.account_entity|id: integer [PK] [NOT NULL]\laccount_id: integer [NOT NULL]\laccount_name: character varying [NOT NULL]\lprovider: character varying\lcountry: character varying\lis_active: boolean\lmodified_at: timestamp with time zone\lmodified_by: character varying\lpriority: integer\lcreated_by: character varying\lcreated_at: timestamp with time zone\l}"];
+  "public.account_entity_test" [label="{public.account_entity_test|modified_by: character varying\lmodified_at: timestamp with time zone\lid: bigint [PK] [NOT NULL]\laccount_id: integer [NOT NULL]\laccount_name: character varying [NOT NULL]\lprovider_entity_id: character varying\lis_active: boolean\lprovider: character varying\lcountry: character varying\lpriority: integer\lcreated_by: character varying\lcreated_at: timestamp with time zone\l}"];
+  "public.adjustment_bank_details" [label="{public.adjustment_bank_details|internal_transaction_reference_id: bigint\lid: bigint [PK] [NOT NULL]\lwallet_id: bigint\lbank_name: character varying\lcreated_at: timestamp with time zone\lbank_account_number: character varying\l}"];
+  "public.bank" [label="{public.bank|bank_id: integer [PK] [NOT NULL]\lcountry: character(2)\laddress: text\lname: text [NOT NULL]\lcity: text\lpostcode: text\l}"];
+  "public.bank_account" [label="{public.bank_account|currency: character varying(10)\lswift_code: character varying(20)\lbank_id: integer [NOT NULL]\laccount_id: integer [PK] [NOT NULL]\laccount_no: character varying(50) [NOT NULL]\l}"];
+  "public.beneficiary_categories" [label="{public.beneficiary_categories|name: character varying\lcode: integer\lid: bigint [PK] [NOT NULL]\l}"];
+  "public.brands" [label="{public.brands|created_by: character varying(255)\lupdated_at: timestamp without time zone\lcreated_at: timestamp without time zone\lis_active: boolean\llinked_clients: text\lwallet_currencies: text[]\lbrand_legal_name: character varying(255) [NOT NULL]\lbrand_name: character varying(255) [NOT NULL]\lorganization_id: character varying(255) [NOT NULL]\lorganization_fkey: integer\lid: integer [PK] [NOT NULL]\lupdated_by: character varying(255)\l}"];
+  "public.brands_prev" [label="{public.brands_prev|linked_clients: character varying\lupdated_at: timestamp with time zone\lcreated_by: character varying\lupdated_by: character varying\lid: bigint [PK] [NOT NULL]\lorganization_fkey: bigint\lorganization_id: character varying [NOT NULL]\lbrand_name: character varying(100) [NOT NULL]\lbrand_legal_name: character varying(200) [NOT NULL]\lwallet_currencies: character varying[]\lcreated_at: timestamp with time zone\lis_active: boolean\l}"];
+  "public.debtor_details" [label="{public.debtor_details|wallet_id: bigint [NOT NULL]\lstatus: character varying\ltransaction_id: character varying [NOT NULL]\lcreated_at: timestamp with time zone\ldebtor_account: character varying\ldebtor_name: character varying\ldescription: text\lid: bigint [PK] [NOT NULL]\lamount: numeric(20,3)\l}"];
+  "public.email_template_masters" [label="{public.email_template_masters|name: text [NOT NULL]\lsubject: text [NOT NULL]\lupdated_at: timestamp with time zone\lcreated_at: timestamp with time zone\lactive: boolean\llanguage: text\ltrigger_type: text\lhtml_template_file: text [NOT NULL]\lid: bigint [PK] [NOT NULL]\lcode: text [NOT NULL]\l}"];
+  "public.email_type_masters" [label="{public.email_type_masters|code: text [NOT NULL]\lid: bigint [PK] [NOT NULL]\lcreated_at: timestamp with time zone\ldescription: text\lname: text [NOT NULL]\l}"];
+  "public.exchange_rates" [label="{public.exchange_rates|updated_at: timestamp without time zone\lupdated_by_id: text\lupdated_by_name: text\lid: bigint [PK] [NOT NULL]\lcurrency_from: text\lrate: numeric [NOT NULL]\lcurrency_to: text\lcreated_at: timestamp without time zone\lsource_id: bigint\lcreated_by_id: text\lcreated_by_name: text\l}"];
+  "public.merchants" [label="{public.merchants|beneficiary_name: character varying(255)\lupdated_at: timestamp without time zone\lmcc_description: character varying(255)\lmcc: character(4)\lmerchant_country: character(2)\lmerchant_name: character varying(255) [NOT NULL]\lmerchant_id: character varying(100)\lid: bigint [PK] [NOT NULL]\lbeneficiary_id: bigint\lcreated_at: timestamp without time zone\l}"];
+  "public.notification_settings" [label="{public.notification_settings|recipient_types: text[]\lrecipient_emails: text[]\lcreated_at: timestamp with time zone\lactive: boolean\ltemplate_folder: text\lbcc_emails: text[]\lcc_emails: text[]\lemail_types: text[]\lid: bigint [PK] [NOT NULL]\lorganization_id: text [NOT NULL]\l}"];
+  "public.notifications_sent" [label="{public.notifications_sent|complex_attributes: jsonb\lid: bigint [PK] [NOT NULL]\lcommunication_type: text [NOT NULL]\ltemplate_code: text\ltemplate_file: text\lorganization_id: text\lemail_type: text\lsubject: text [NOT NULL]\lrecipients_to: text[] [NOT NULL]\lrecipients_cc: text[]\lrecipients_bcc: text[]\lattributes: jsonb\lstatus: text [NOT NULL]\lerror_message: text\lcreated_at: timestamp with time zone\l}"];
+  "public.oauth2_clients" [label="{public.oauth2_clients|client_name: character varying(255) [NOT NULL]\lcreated_at: timestamp without time zone\lclient_id: character varying(255) [NOT NULL]\lid: integer [PK] [NOT NULL]\lupdated_at: timestamp without time zone\lis_active: boolean\ldescription: text\lclient_secret: character varying(255) [NOT NULL]\lexpires_at: timestamp without time zone\lcreated_by: character varying(255)\l}"];
+  "public.odcompanyx_to_org_map" [label="{public.odcompanyx_to_org_map|od_company_x_id: bigint [PK] [NOT NULL]\lorganization_id: character varying [NOT NULL]\lorgname: character varying(255)\lcreated_at: timestamp with time zone [NOT NULL]\l}"];
+  "public.organization_currency_mapping" [label="{public.organization_currency_mapping|orgname: character varying(255) [NOT NULL]\lcreated_by: character varying(255)\lupdated_at: timestamp with time zone\lcreated_at: timestamp with time zone\lparent_company_name: character varying(255)\lcurrency_code: character varying(10) [NOT NULL]\lod_company_x_id: integer [NOT NULL]\lorganization_id: character varying(255) [NOT NULL]\lid: integer [PK] [NOT NULL]\lupdated_by: character varying(255)\l}"];
+  "public.organization_relations" [label="{public.organization_relations|active: boolean\ldebit_organization_name: character varying\lcredit_organization_name: character varying\lcredit_organization_id: character varying\ldebit_organization_id: character varying\lcreated_at: timestamp with time zone\lid: bigint [PK] [NOT NULL]\l}"];
+  "public.organizations" [label="{public.organizations|primary_contact_email: character varying(255)\lprimary_contact_name: character varying(255)\lis_active: boolean\lorganization_legal_name: character varying(255) [NOT NULL]\lorganization_name: character varying(255) [NOT NULL]\lorganization_id: character varying(255) [NOT NULL]\lid: integer [PK] [NOT NULL]\lprimary_contact_phone_country_code: character varying(10)\lprimary_contact_phone_number: character varying(20)\lcreated_at: timestamp without time zone\lupdated_at: timestamp without time zone\lcreated_by: character varying(255)\lupdated_by: character varying(255)\l}"];
+  "public.organizations_prev" [label="{public.organizations_prev|created_by: character varying\lupdated_at: timestamp with time zone\lcreated_at: timestamp with time zone\lprimary_contact_phone_number: character varying(20) [NOT NULL]\lprimary_contact_phone_country_code: character varying(5) [NOT NULL]\lprimary_contact_email: character varying(255) [NOT NULL]\lprimary_contact_name: character varying(100) [NOT NULL]\lis_active: boolean\lorganization_legal_name: character varying(200) [NOT NULL]\lorganization_name: character varying(100) [NOT NULL]\lid: bigint [PK] [NOT NULL]\lupdated_by: character varying\l}"];
+  "public.purchase_events" [label="{public.purchase_events|created_at: timestamp without time zone [NOT NULL]\lprocessed: boolean [NOT NULL]\levent_time: timestamp without time zone\levent_type: text\lid: bigint [PK] [NOT NULL]\lprocessed_at: timestamp with time zone\lpayload: jsonb [NOT NULL]\l}"];
+  "public.role_permissions" [label="{public.role_permissions|created_at: timestamp without time zone\lid: integer [PK] [NOT NULL]\lrole: character varying(50) [NOT NULL]\lservice_scope: character varying(20) [NOT NULL]\lresource: character varying(100) [NOT NULL]\laction: character varying(50) [NOT NULL]\lpermission: character varying(100)\lis_active: boolean\l}"];
+  "public.template_field_relations" [label="{public.template_field_relations|id: bigint [PK] [NOT NULL]\lmin: integer\lmax: integer\lis_mandatory: boolean\lfield_id: bigint\ltemplate_id: bigint\l}"];
+  "public.unified_vcc_transactions" [label="{public.unified_vcc_transactions|transaction_type: character varying(50)\lpos_currency: character(3)\lbilling_currency: character(3)\lpos_amount: numeric(18,4)\lbilling_amount: numeric(18,4)\lcreated_at: timestamp without time zone\lauth_code: character varying(50)\lfail_reason: character varying(255)\lposting_date: date\ltransaction_date: date\lmerchant_id: character varying(100)\lvcc_id: bigint [NOT NULL]\lid: bigint [PK] [NOT NULL]\lexchange_rate: numeric(20,12)\lfee_amount: numeric(18,4)\lmerchant_name: character varying(255)\lmerchant_country_code: character varying(100)\lmcc: character varying(10)\lprovider_transaction_id: character varying(255)\lacquirer_reference_number: character varying(255)\lauth_status: character varying(50)\l}"];
+  "public.user_defined_fields" [label="{public.user_defined_fields|type: integer\lcreated_by: character varying\lname: character varying\lid: bigint [PK] [NOT NULL]\lcreated_at: timestamp with time zone\l}"];
+  "public.user_defined_templates" [label="{public.user_defined_templates|beneficiary_category: integer\lid: bigint [PK] [NOT NULL]\lname: character varying [NOT NULL]\ltemplate_type: character varying [NOT NULL]\ldescription: character varying [NOT NULL]\lis_default: boolean [NOT NULL]\lis_active: boolean [NOT NULL]\lorganization_id: character varying [NOT NULL]\lcreated_by: character varying\lupdated_by: character varying\lcreated_at: timestamp with time zone\lupdated_at: timestamp with time zone\l}"];
+  "public.user_organization_access" [label="{public.user_organization_access|updated_by: character varying(255)\lid: integer [PK] [NOT NULL]\luser_id: character varying(255) [NOT NULL]\luser_email: character varying(255) [NOT NULL]\lprimary_organization_id: character varying(255) [NOT NULL]\ladditional_organization_ids: jsonb\lod_company_x_ids: jsonb\laccessible_currencies: jsonb\lcreated_at: timestamp with time zone\lupdated_at: timestamp with time zone\lcreated_by: character varying(255)\l}"];
+  "public.user_organization_brands" [label="{public.user_organization_brands|user_email: character varying(255) [NOT NULL]\lidentity_organization_id: character varying(255)\lupdated_by: character varying(255)\lcreated_by: character varying(255)\lupdated_at: timestamp without time zone\lcreated_at: timestamp without time zone\lis_active: boolean\lservice_scope: character varying(20) [NOT NULL]\lrole: character varying(50) [NOT NULL]\lbrand_id: integer\lorganization_id: character varying(255) [NOT NULL]\lid: integer [PK] [NOT NULL]\l}"];
+  "public.vcc_accounts" [label="{public.vcc_accounts|account_id: integer [NOT NULL]\lvcc_id: bigint [NOT NULL]\lid: bigint [PK] [NOT NULL]\lcreated_at: timestamp with time zone [NOT NULL]\lprovider: character varying(50) [NOT NULL]\l}"];
+  "public.vcc_card_details" [label="{public.vcc_card_details|created_date: timestamp without time zone\lcard_class: character varying(50)\lid: bigint [PK] [NOT NULL]\lcard_digits: character varying(10) [NOT NULL]\lvcc_id: bigint [NOT NULL]\lcard_brand: character varying(50)\lmodified_by: character varying(50)\lcreated_by: character varying(50)\lmodified_date: timestamp without time zone\l}"];
+  "public.vcc_events" [label="{public.vcc_events|processed: boolean\lcreated_date: timestamp without time zone [NOT NULL]\lcreated_by: character varying(50) [NOT NULL]\lid: integer [PK] [NOT NULL]\lvcc_id: bigint\levent_type: character varying(20) [NOT NULL]\ldescription: jsonb\l}"];
+  "public.vcc_reissues" [label="{public.vcc_reissues|created_date: timestamp without time zone [NOT NULL]\lchild_vcc_id: bigint [NOT NULL]\lparent_vcc_id: bigint [NOT NULL]\lid: bigint [PK] [NOT NULL]\l}"];
+  "public.vcc_transactions" [label="{public.vcc_transactions|settle_amount: numeric(10,3)\lauth_amount: numeric(10,3)\lvcc_id: integer\lid: integer [PK] [NOT NULL]\ldecline_reason_message: character varying(255)\lpos_auth_amount: numeric(10,3)\lcreated_at: timestamp without time zone\ldescription: character varying(500)\lpos_currency: character(3)\lsettle_date: timestamp without time zone\lauth_date: timestamp without time zone\ldecline_reason_code: character varying(50)\lapproval_code: character varying(50)\loriginal_transaction_id: character varying(50)\lauth_number: character varying(6)\lreference_number: character varying(50)\lpos_settle_amount: numeric(10,3)\lprovider_transaction_id: character varying(50)\l}"];
+  "public.vcc_user_defined_fields" [label="{public.vcc_user_defined_fields|value: character varying [NOT NULL]\luser_defined_field_id: bigint [NOT NULL]\lvcc_id: bigint [NOT NULL]\lid: bigint [PK] [NOT NULL]\l}"];
+  "public.vccs" [label="{public.vccs|beneficiary_category: integer\loverride_duplicate: boolean\lvca_id: character varying(50)\lexternal_reference_id2: character varying(50)\lexternal_reference_id: character varying(50) [NOT NULL]\ltemplate_id: bigint\lorganization_id: character varying(36)\lexpiration_date: character varying\lvcc_ref_id: character varying\ldatetime: timestamp with time zone [NOT NULL]\lmodified_date: timestamp without time zone\lmodified_by: character varying(50)\lcreated_date: timestamp without time zone\lcreated_by: character varying(50)\lfunded_date: timestamp without time zone\lavailable_balance: numeric(10,2)\lcvc: character varying(4)\llast_name: character varying(50)\lfirst_name: character varying(50)\lstatus: character varying(36)\ldescription: character varying(500)\ltermination_date: timestamp without time zone\lactivation_date: timestamp without time zone\lbrand: character varying(2)\lmax_auth: integer\lcurrency_buffer_value: numeric(12,3)\lcurrency_buffer_perc: numeric(10,3)\lexchange_rate: numeric\lsupplier_value: numeric(10,2)\lsupplier_currency_code: character(3)\lvalue: numeric(10,2) [NOT NULL]\lcurrency_code: character(3) [NOT NULL]\lbeneficiary_country_code: character(2)\lbeneficiary_name: character varying(255)\lbeneficiary_id: character varying(50)\lfunding_wallet_id: integer [NOT NULL]\ltoken_number: character varying(50) [NOT NULL]\lid: bigint [PK] [NOT NULL]\l}"];
+  "public.virtual_bank_account" [label="{public.virtual_bank_account|payer_id: character varying(50)\lvaccount_id: integer [PK] [NOT NULL]\laccount_id: integer [NOT NULL]\lbank_id: integer [NOT NULL]\lcurrency_code: character varying(10)\liban: character varying(50) [NOT NULL]\l}"];
+  "public.wallet_event_user_defined_fields" [label="{public.wallet_event_user_defined_fields|name: character varying(50) [NOT NULL]\lid: integer [PK] [NOT NULL]\lvalue: character varying(500) [NOT NULL]\ltype: character varying(50)\lwallet_event_id: bigint [NOT NULL]\l}"];
+  "public.wallet_events" [label="{public.wallet_events|description: text\lstatus: character varying(10) [NOT NULL]\ltransaction_source: character varying [NOT NULL]\lcreated_at: timestamp with time zone\lid: bigint [PK] [NOT NULL]\lwallet_id: bigint [NOT NULL]\lchange_type: character varying(1) [NOT NULL]\ltransaction_id: character varying [NOT NULL]\lchange_amount: numeric(20,3) [NOT NULL]\lupdated_balance: numeric(20,3) [NOT NULL]\lprevious_balance: numeric(20,3) [NOT NULL]\lupdated_at: timestamp with time zone\l}"];
+  "public.wallet_ledger" [label="{public.wallet_ledger|amount: numeric(20,3) [NOT NULL]\ltransaction_source: integer [NOT NULL]\ldescription: text\lcreated_at: timestamp with time zone\ltemplate_id: bigint\lexternal_reference_id2: character varying(255)\lexternal_reference_id: character varying(255) [NOT NULL]\lid: bigint [PK] [NOT NULL]\lwallet_id: bigint [NOT NULL]\lcounter_wallet: bigint\lchange_type: character varying(1) [NOT NULL]\lprevious_balance: numeric(20,3) [NOT NULL]\lupdated_balance: numeric(20,3) [NOT NULL]\lstatus: integer [NOT NULL]\linternal_reference_id: bigint [NOT NULL]\l}"];
+  "public.wallet_transactions" [label="{public.wallet_transactions|id: bigint [PK] [NOT NULL]\lvalue: numeric(20,3) [NOT NULL]\lpayment_date: timestamp with time zone [NOT NULL]\ldescription: text\lstatus: character varying(10) [NOT NULL]\lchange_type: character varying\lbeneficiary_category: integer\ldebit_organization_id: character varying\lcredit_organization_id: character varying\ltype: character varying(10) [NOT NULL]\ltransaction_source: character varying(10) [NOT NULL]\lexternal_reference_id: character varying [NOT NULL]\lexternal_reference_id2: character varying\ltemplate_id: bigint\lcreated_at: timestamp with time zone\lupdated_at: timestamp with time zone\lcreated_by: character varying\lupdated_by: character varying\lwallet_id: bigint [NOT NULL]\l}"];
+  "public.wallet_user_defined_fields" [label="{public.wallet_user_defined_fields|transaction_id: bigint [NOT NULL]\luser_defined_field_id: bigint [NOT NULL]\lvalue: character varying [NOT NULL]\lid: bigint [PK] [NOT NULL]\l}"];
+  "public.wallets" [label="{public.wallets|funding_wallet_id: integer [NOT NULL]\lorganization_id: character varying [NOT NULL]\lid: bigint [PK] [NOT NULL]\lupdated_by: character varying\lcreated_by: character varying\lupdated_at: timestamp with time zone\lcreated_at: timestamp with time zone\lbalance: numeric(20,3)\liban: character varying\lpayer_id: character varying\lcurrency_code: character(3) [NOT NULL]\l}"];
+  "public.webhook_reports" [label="{public.webhook_reports|id: bigint [PK] [NOT NULL]\lrequest: jsonb [NOT NULL]\lstatus: integer\lsource: text [NOT NULL]\lcreated_at: timestamp with time zone\l}"];
+  "public.webhook_subscription_details" [label="{public.webhook_subscription_details|events: text[]\lrecipient_type: character varying\lid: integer [PK] [NOT NULL]\levent_id: integer\l}"];
+  "public.webhook_subscription_events" [label="{public.webhook_subscription_events|url: character varying [NOT NULL]\ldescription: jsonb\lid: integer [PK] [NOT NULL]\lorganization_id: character varying [NOT NULL]\levent_type: character varying [NOT NULL]\l}"];
+  "public.webhook_subscriptions" [label="{public.webhook_subscriptions|subscribed_for: character varying\lorganization_id: character varying [NOT NULL]\lactive: boolean\lurl: character varying [NOT NULL]\lid: integer [PK] [NOT NULL]\l}"];
+  "public.whitelisted_ips" [label="{public.whitelisted_ips|status: integer\lip_address: text [NOT NULL]\lid: integer [PK] [NOT NULL]\lupdated_at: timestamp without time zone\lcreated_at: timestamp without time zone\ldescription: text\l}"];
+  "public.vcc_events" -> "public.vccs" [xlabel="vcc_events_fkey (vcc_id → id)"];
+  "public.webhook_subscription_details" -> "public.webhook_subscriptions" [xlabel="webhook_subscription_details_event_id_fkey (event_id → id)"];
+  "public.wallet_event_user_defined_fields" -> "public.wallet_events" [xlabel="wallet_event_user_defined_fields_wallet_event_id_fkey (wallet_event_id → id)"];
+  "public.wallet_transactions" -> "public.user_defined_templates" [xlabel="wallet_transactions_template_id_fkey (template_id → id)"];
+  "public.wallet_ledger" -> "public.user_defined_templates" [xlabel="wallet_ledger_template_id_fkey (template_id → id)"];
+  "public.wallet_ledger" -> "public.wallet_transactions" [xlabel="wallet_ledger_internal_reference_id_fkey (internal_reference_id → id)"];
+  "public.wallet_user_defined_fields" -> "public.wallet_transactions" [xlabel="wallet_user_defined_fields_transaction_id_fkey (transaction_id → id)"];
+  "public.wallet_user_defined_fields" -> "public.user_defined_fields" [xlabel="wallet_user_defined_fields_user_defined_field_id_fkey (user_defined_field_id → id)"];
+  "public.vcc_user_defined_fields" -> "public.user_defined_fields" [xlabel="new_vcc_user_defined_fields_user_defined_field_id_fkey (user_defined_field_id → id)"];
+  "public.wallet_events" -> "public.wallets" [xlabel="wallet_events_wallet_id_fkey (wallet_id → id)"];
+  "public.wallet_ledger" -> "public.wallets" [xlabel="wallet_ledger_wallet_id_fkey (wallet_id → id)"];
+  "public.wallet_transactions" -> "public.wallets" [xlabel="wallet_transactions_wallet_id_fkey (wallet_id → id)"];
+  "public.vccs" -> "public.user_defined_templates" [xlabel="fk_template_id (template_id → id)"];
+  "public.vcc_accounts" -> "public.vccs" [xlabel="vcc_accounts_vcc_id_fkey (vcc_id → id)"];
+  "public.template_field_relations" -> "public.user_defined_fields" [xlabel="template_field_relations_field_id_fkey (field_id → id)"];
+  "public.template_field_relations" -> "public.user_defined_templates" [xlabel="template_field_relations_template_id_fkey (template_id → id)"];
+  "public.debtor_details" -> "public.wallets" [xlabel="debtor_details_wallet_id_fkey (wallet_id → id)"];
+  "public.vcc_reissues" -> "public.vccs" [xlabel="vcc_reissues_parent_vcc_id_fkey (parent_vcc_id → id)"];
+  "public.vcc_reissues" -> "public.vccs" [xlabel="vcc_reissues_child_vcc_id_fkey (child_vcc_id → id)"];
+  "public.adjustment_bank_details" -> "public.wallets" [xlabel="bank_details_wallet_fkey (wallet_id → id)"];
+  "public.adjustment_bank_details" -> "public.wallet_transactions" [xlabel="bank_details_transaction_fkey (internal_transaction_reference_id → id)"];
+  "public.brands_prev" -> "public.organizations_prev" [xlabel="brands_organization_fkey_fkey (organization_fkey → id)"];
+  "public.brands" -> "public.organizations" [xlabel="brands_organization_fkey_fkey1 (organization_fkey → id)"];
+  "public.user_organization_brands" -> "public.brands" [xlabel="user_organization_brands_brand_id_fkey (brand_id → id)"];
+  "public.vcc_card_details" -> "public.vccs" [xlabel="fk_vcc_card_details_vcc_id (vcc_id → id)"];
+  "public.bank_account" -> "public.bank" [xlabel="bank_account_bank_id_fkey (bank_id → bank_id)"];
+  "public.virtual_bank_account" -> "public.bank_account" [xlabel="virtual_bank_account_account_id_fkey (account_id → account_id)"];
+  "public.virtual_bank_account" -> "public.bank" [xlabel="virtual_bank_account_bank_id_fkey (bank_id → bank_id)"];
 }
