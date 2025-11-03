@@ -185,10 +185,11 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
 
     # Use iteration path filtering if available (preferred)
     if iteration_path:
+        # Use UNDER to include all child paths of the iteration node
         wiql_query["query"] += f"""
-        AND [System.IterationPath] = '{iteration_path}'
+        AND [System.IterationPath] UNDER '{iteration_path}'
         """
-        print(f"   📋 Iteration path filtering: {iteration_path}")
+        print(f"   📋 Iteration path filtering (UNDER): {iteration_path}")
         if sprint_start and sprint_end:
             # Also log the dates for reference (but we're using iteration path)
             date_start = sprint_start.split('T', 1)[0] if sprint_start else None

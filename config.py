@@ -131,6 +131,30 @@ class Config:
                 'end_iso': end_iso
             }
         
+        # If we didn't find any non-fallback periods with dates,
+        # try any periods that at least have dates (including fallback-derived ones)
+        any_with_dates = [
+            p for p in all_periods
+            if 'start_datetime' in p and 'end_datetime' in p
+        ]
+        if any_with_dates:
+            earliest_start = min(p['start_datetime'] for p in any_with_dates)
+            latest_end = max(p['end_datetime'] for p in any_with_dates)
+
+            start_date_str = earliest_start.strftime('%d-%b-%Y')
+            end_date_str = latest_end.strftime('%d-%b-%Y')
+            start_iso = earliest_start.strftime('%Y-%m-%dT00:00:00')
+            end_iso = latest_end.strftime('%Y-%m-%dT23:59:59')
+
+            return {
+                'start_date': start_date_str,
+                'end_date': end_date_str,
+                'start_datetime': earliest_start,
+                'end_datetime': latest_end,
+                'start_iso': start_iso,
+                'end_iso': end_iso
+            }
+
         # Fallback to old hardcoded dates
         sprint_start = datetime(2024, 10, 14)
         sprint_end = datetime(2024, 10, 27)
