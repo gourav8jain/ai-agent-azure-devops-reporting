@@ -40,7 +40,15 @@ class Config:
                     'tags': [],
                     'sprint_duration_weeks': 3,  # IOL Pay has 3-week sprints
                     'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-28',  # Current sprint: Iteration-28
-                    'iteration_display': 'Iteration-28 (Oct 14 - Nov 3)'  # Display with dates
+                    'iteration_display': 'Iteration-28 (Oct 14 - Nov 3)',  # Display with dates
+                    # Fallback cadence (used only if Azure DevOps API is unavailable)
+                    # Anchor: Iteration-28 starting Oct 14, 2024, 3-week cadence
+                    'fallback_cadence': {
+                        'anchor_start': '2024-10-14',
+                        'anchor_number': 28,
+                        'duration_weeks': 3,
+                        'name_prefix': 'Iteration-'
+                    }
                 }
             }
         },
@@ -53,7 +61,15 @@ class Config:
                     'tags': [],
                     'sprint_duration_weeks': 2,  # VCC has 2-week sprints
                     'iteration_path': 'VCCWallet\\Sprint 11',  # Current sprint: Sprint-11
-                    'iteration_display': 'Sprint-11 (Oct 14 - Oct 27)'  # Display with dates
+                    'iteration_display': 'Sprint-11 (Oct 14 - Oct 27)',  # Display with dates
+                    # Fallback cadence (used only if Azure DevOps API is unavailable)
+                    # Anchor: Sprint 12 starting Oct 28, 2024, 2-week cadence
+                    'fallback_cadence': {
+                        'anchor_start': '2024-10-28',
+                        'anchor_number': 12,
+                        'duration_weeks': 2,
+                        'name_prefix': 'Sprint '
+                    }
                 }
             }
         }
@@ -215,15 +231,49 @@ class Config:
                 'iteration_name': iteration_info.get('name')
             }
         
-        # Fallback: Use iteration_path from config if Azure DevOps fetch failed
-        # But we don't calculate dates - we only use it if no iteration was found
-        iteration_path = project_config.get('iteration_path')
-        iteration_display = project_config.get('iteration_display', '')
+        # Fallback: derive current iteration from configured cadence (anchor, duration, number)
+        cadence = project_config.get('fallback_cadence')
+        if cadence:
+            try:
+                anchor_start = datetime.strptime(cadence['anchor_start'], '%Y-%m-%d')
+                duration_days = int(cadence['duration_weeks']) * 7
+                name_prefix = cadence.get('name_prefix', '')
+                anchor_number = int(cadence['anchor_number'])
+                
+                today = datetime.now()
+                # Number of complete durations since anchor
+                delta_days = (today.date() - anchor_start.date()).days
+                n = max(0, delta_days // duration_days)
+                current_start = anchor_start + timedelta(days=n * duration_days)
+                current_end = current_start + timedelta(days=duration_days - 1)
+                current_number = anchor_number + n
+                iteration_name = f"{name_prefix}{current_number}"
+                
+                # Build iteration_path by replacing the last segment with iteration_name if possible
+                base_iteration_path = project_config.get('iteration_path')
+                iteration_path = None
+                if base_iteration_path and '\\' in base_iteration_path:
+                    parts = base_iteration_path.split('\\')
+                    parts[-1] = iteration_name
+                    iteration_path = '\\'.join(parts)
+                
+                return {
+                    'start_date': current_start.strftime('%d-%b-%Y'),
+                    'end_date': current_end.strftime('%d-%b-%Y'),
+                    'start_datetime': current_start,
+                    'end_datetime': current_end,
+                    'start_iso': current_start.strftime('%Y-%m-%dT00:00:00'),
+                    'end_iso': current_end.strftime('%Y-%m-%dT23:59:59'),
+                    'iteration_path': iteration_path,
+                    'iteration_name': iteration_name,
+                    'fallback': True
+                }
+            except Exception:
+                pass
         
+        # Last resort: use static iteration_path if present
+        iteration_path = project_config.get('iteration_path')
         if iteration_path:
-            print(f"   ⚠️ Using fallback iteration path from config: {iteration_path}")
-            # Return None to indicate we couldn't fetch actual dates
-            # This will trigger the main code to use the iteration_path directly
             return {
                 'iteration_path': iteration_path,
                 'iteration_name': iteration_path.split('\\')[-1],
