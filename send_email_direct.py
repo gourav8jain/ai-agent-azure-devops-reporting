@@ -39,11 +39,11 @@ def send_email_directly(html_filename, html_content):
     msg = MIMEMultipart('alternative')
     msg['From'] = EMAIL_FROM
     msg['To'] = ', '.join(recipients)  # Multiple recipients
-    msg['Subject'] = f"IOL Pay + VCC Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')}"
+    msg['Subject'] = f"Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')} - IOL Pay & VCC"
     
     # Create text body
     text_body = f"""
-IOL Pay + VCC Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')}
+Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')} - IOL Pay & VCC
 
 This report contains sprint data for the current period: IOL Pay (Iteration-28) and VCC (Sprint-11)
 
@@ -126,7 +126,7 @@ def main():
             html_content = f.read()
         
         print(f"\n📧 Email Details:")
-        print(f"   Subject: Azure DevOps Sprint Report - {datetime.now().strftime('%B %d, %Y')}")
+        print(f"   Subject: Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')} - IOL Pay & VCC")
         print(f"   Content: HTML report in email body")
         print(f"   Size: {len(html_content)} characters")
         
