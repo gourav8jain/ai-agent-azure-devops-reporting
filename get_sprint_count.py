@@ -43,74 +43,112 @@ def get_current_iteration(organization, project, team_name=None):
         
         team_id = target_team.get('id')
         
-        # Get iterations for the team
-        iterations_url = f"https://dev.azure.com/{organization}/{project}/{team_id}/_apis/work/teamsettings/iterations?api-version=7.0&$timeframe=current"
+        # Get ALL iterations for the team (not just current)
+        iterations_url = f"https://dev.azure.com/{organization}/{project}/{team_id}/_apis/work/teamsettings/iterations?api-version=7.0"
         response = requests.get(iterations_url, headers=headers)
         response.raise_for_status()
         iterations_data = response.json()
-        iterations = iterations_data.get('value', [])
+        all_iterations = iterations_data.get('value', [])
         
-        # Find current iteration
+        print(f"   📋 Found {len(all_iterations)} total iterations/sprints")
+        
+        if not all_iterations:
+            print(f"   ⚠️ No iterations found for team {target_team.get('name')}")
+            return None
+        
+        # Find current iteration based on today's date
         today = datetime.now().date()
         current_iteration = None
+        past_iterations = []
+        future_iterations = []
         
-        for iteration in iterations:
+        # Parse and categorize all iterations
+        for iteration in all_iterations:
             attrs = iteration.get('attributes', {})
-            start_date = attrs.get('startDate')
-            end_date = attrs.get('finishDate')
+            start_date_str = attrs.get('startDate')
+            end_date_str = attrs.get('finishDate')
             
-            if start_date and end_date:
-                # Parse dates
-                if isinstance(start_date, str):
-                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
-                if isinstance(end_date, str):
-                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
-                
-                # Check if today is within this iteration
-                if start_date <= today <= end_date:
-                    current_iteration = {
-                        'id': iteration.get('id'),
-                        'name': iteration.get('name'),
-                        'path': iteration.get('path'),
-                        'start_date': attrs.get('startDate'),
-                        'end_date': attrs.get('finishDate')
-                    }
-                    break
+            if not start_date_str or not end_date_str:
+                continue
+            
+            # Parse dates from Azure DevOps format
+            if isinstance(start_date_str, str):
+                try:
+                    if 'T' in start_date_str:
+                        start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')).date()
+                    else:
+                        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                except:
+                    continue
+            else:
+                continue
+            
+            if isinstance(end_date_str, str):
+                try:
+                    if 'T' in end_date_str:
+                        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).date()
+                    else:
+                        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                except:
+                    continue
+            else:
+                continue
+            
+            # Check if today is within this iteration
+            if start_date <= today <= end_date:
+                current_iteration = {
+                    'id': iteration.get('id'),
+                    'name': iteration.get('name'),
+                    'path': iteration.get('path'),
+                    'start_date': start_date_str,
+                    'end_date': end_date_str
+                }
+                print(f"   ✅ Found current iteration: {current_iteration['name']} ({start_date} to {end_date})")
+                break
+            elif end_date < today:
+                past_iterations.append({
+                    'iteration': iteration,
+                    'end_date': end_date,
+                    'start_date': start_date
+                })
+            elif start_date > today:
+                future_iterations.append({
+                    'iteration': iteration,
+                    'start_date': start_date,
+                    'end_date': end_date
+                })
         
-        # If no current iteration found, try to get the most recent future iteration
+        # If no current iteration, use the most recent past iteration
         if not current_iteration:
-            for iteration in sorted(iterations, key=lambda x: x.get('attributes', {}).get('startDate', '')):
-                attrs = iteration.get('attributes', {})
-                start_date = attrs.get('startDate')
-                
-                if start_date:
-                    if isinstance(start_date, str):
-                        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
-                    
-                    if start_date >= today:
-                        current_iteration = {
-                            'id': iteration.get('id'),
-                            'name': iteration.get('name'),
-                            'path': iteration.get('path'),
-                            'start_date': attrs.get('startDate'),
-                            'end_date': attrs.get('finishDate')
-                        }
-                        break
+            if past_iterations:
+                # Sort by end_date descending to get most recent past iteration
+                past_iterations.sort(key=lambda x: x['end_date'], reverse=True)
+                most_recent = past_iterations[0]['iteration']
+                attrs = most_recent.get('attributes', {})
+                current_iteration = {
+                    'id': most_recent.get('id'),
+                    'name': most_recent.get('name'),
+                    'path': most_recent.get('path'),
+                    'start_date': attrs.get('startDate'),
+                    'end_date': attrs.get('finishDate')
+                }
+                print(f"   ⚠️ No active iteration found. Using most recent past iteration: {current_iteration['name']}")
+            elif future_iterations:
+                # If no past iterations, use the nearest future iteration
+                future_iterations.sort(key=lambda x: x['start_date'])
+                nearest_future = future_iterations[0]['iteration']
+                attrs = nearest_future.get('attributes', {})
+                current_iteration = {
+                    'id': nearest_future.get('id'),
+                    'name': nearest_future.get('name'),
+                    'path': nearest_future.get('path'),
+                    'start_date': attrs.get('startDate'),
+                    'end_date': attrs.get('finishDate')
+                }
+                print(f"   ⚠️ No active iteration found. Using nearest future iteration: {current_iteration['name']}")
         
-        # If still no iteration, get the first iteration available
-        if not current_iteration and iterations:
-            iteration = iterations[0]
-            attrs = iteration.get('attributes', {})
-            current_iteration = {
-                'id': iteration.get('id'),
-                'name': iteration.get('name'),
-                'path': iteration.get('path'),
-                'start_date': attrs.get('startDate'),
-                'end_date': attrs.get('finishDate')
-            }
-        
-        if current_iteration:
-            print(f"   ✅ Found current iteration: {current_iteration['name']} ({current_iteration.get('start_date')} to {current_iteration.get('end_date')})")
+        if not current_iteration:
+            print(f"   ❌ No iteration found for team {target_team.get('name')}")
         
         return current_iteration
         
@@ -145,14 +183,20 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
         """
     }
 
-    # Use iteration path filtering if available, otherwise use date range filtering
+    # Use iteration path filtering if available (preferred)
     if iteration_path:
         wiql_query["query"] += f"""
         AND [System.IterationPath] = '{iteration_path}'
         """
         print(f"   📋 Iteration path filtering: {iteration_path}")
-    else:
-        # Add date range filtering as fallback
+        if sprint_start and sprint_end:
+            # Also log the dates for reference (but we're using iteration path)
+            date_start = sprint_start.split('T', 1)[0] if sprint_start else None
+            date_end = sprint_end.split('T', 1)[0] if sprint_end else None
+            if date_start and date_end:
+                print(f"   📅 Sprint period: {date_start} to {date_end}")
+    elif sprint_start and sprint_end:
+        # Add date range filtering as fallback (when no iteration path available)
         date_start = sprint_start.split('T', 1)[0]
         date_end = sprint_end.split('T', 1)[0]
         wiql_query["query"] += f"""
@@ -160,6 +204,9 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
         AND [System.ChangedDate] <= '{date_end}'
         """
         print(f"   📅 Date filtering: {date_start} to {date_end}")
+    else:
+        # No filtering - will get all work items (not recommended but handled)
+        print(f"   ⚠️ No iteration path or date range specified - fetching all work items")
 
     # Add tag filtering if specified
     if tags:
@@ -294,7 +341,8 @@ def main():
             # Get project-specific sprint period
             sprint_period = Config.get_current_sprint_period(project_key)
             
-            if sprint_period:
+            if sprint_period and not sprint_period.get('fallback'):
+                # Got actual dates from Azure DevOps
                 sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
                 sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')
                 iteration_path = sprint_period.get('iteration_path') or project_config.get('iteration_path')
@@ -302,8 +350,15 @@ def main():
                 print(f"   📅 Sprint Period: {sprint_period['start_date']} to {sprint_period['end_date']}")
                 if sprint_period.get('iteration_name'):
                     print(f"   📋 Iteration: {sprint_period['iteration_name']}")
+            elif sprint_period and sprint_period.get('fallback'):
+                # Fallback: Use iteration_path from config (no dates, will use iteration path filtering)
+                iteration_path = sprint_period.get('iteration_path') or project_config.get('iteration_path')
+                sprint_start_iso = None
+                sprint_end_iso = None
+                print(f"   ⚠️ Using fallback iteration path: {iteration_path}")
+                print(f"   ⚠️ Will filter by iteration path only (no date filtering)")
             else:
-                # Fallback to config values
+                # Fallback to config values if nothing works
                 sprint_period = Config.get_current_sprint_period()
                 sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
                 sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')

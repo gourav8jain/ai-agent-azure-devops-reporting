@@ -209,49 +209,20 @@ class Config:
                 'iteration_name': iteration_info.get('name')
             }
         
-        # Fallback: Use iteration_path from config if available
+        # Fallback: Use iteration_path from config if Azure DevOps fetch failed
+        # But we don't calculate dates - we only use it if no iteration was found
         iteration_path = project_config.get('iteration_path')
+        iteration_display = project_config.get('iteration_display', '')
+        
         if iteration_path:
-            # Extract dates from iteration_display if available
-            iteration_display = project_config.get('iteration_display', '')
-            # Try to parse dates from iteration_display (e.g., "Iteration-28 (Oct 14 - Nov 3)")
-            import re
-            date_pattern = r'(\w{3})\s+(\d{1,2})\s+-\s+(\w{3})\s+(\d{1,2})'
-            match = re.search(date_pattern, iteration_display)
-            
-            if match:
-                # For now, use current date and calculate based on sprint duration
-                sprint_duration_weeks = project_config.get('sprint_duration_weeks', 2)
-                today = datetime.now()
-                
-                # Calculate sprint start (assuming sprints start on Monday)
-                days_since_monday = today.weekday()
-                sprint_start = today - timedelta(days=days_since_monday)
-                
-                # Adjust if we're past the middle of the sprint
-                sprint_duration_days = sprint_duration_weeks * 7
-                sprint_end = sprint_start + timedelta(days=sprint_duration_days - 1)
-                
-                # If today is past the sprint end, move to next sprint
-                if today > sprint_end:
-                    sprint_start = sprint_end + timedelta(days=1)
-                    sprint_end = sprint_start + timedelta(days=sprint_duration_days - 1)
-                
-                start_date_str = sprint_start.strftime('%d-%b-%Y')
-                end_date_str = sprint_end.strftime('%d-%b-%Y')
-                start_iso = sprint_start.strftime('%Y-%m-%dT00:00:00')
-                end_iso = sprint_end.strftime('%Y-%m-%dT23:59:59')
-                
-                return {
-                    'start_date': start_date_str,
-                    'end_date': end_date_str,
-                    'start_datetime': sprint_start,
-                    'end_datetime': sprint_end,
-                    'start_iso': start_iso,
-                    'end_iso': end_iso,
-                    'iteration_path': iteration_path,
-                    'iteration_name': iteration_path.split('\\')[-1]
-                }
+            print(f"   ⚠️ Using fallback iteration path from config: {iteration_path}")
+            # Return None to indicate we couldn't fetch actual dates
+            # This will trigger the main code to use the iteration_path directly
+            return {
+                'iteration_path': iteration_path,
+                'iteration_name': iteration_path.split('\\')[-1],
+                'fallback': True
+            }
         
         return None
     
