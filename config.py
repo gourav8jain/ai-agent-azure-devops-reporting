@@ -91,9 +91,15 @@ class Config:
                 if period:
                     all_periods.append(period)
         
-        if all_periods:
-            earliest_start = min(p['start_datetime'] for p in all_periods)
-            latest_end = max(p['end_datetime'] for p in all_periods)
+        # Filter out fallback periods that don't have dates
+        periods_with_dates = [
+            p for p in all_periods 
+            if not p.get('fallback') and 'start_datetime' in p and 'end_datetime' in p
+        ]
+        
+        if periods_with_dates:
+            earliest_start = min(p['start_datetime'] for p in periods_with_dates)
+            latest_end = max(p['end_datetime'] for p in periods_with_dates)
             
             start_date_str = earliest_start.strftime('%d-%b-%Y')
             end_date_str = latest_end.strftime('%d-%b-%Y')
