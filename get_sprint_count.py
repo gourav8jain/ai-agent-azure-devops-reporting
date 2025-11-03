@@ -185,17 +185,24 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
 
     # Use iteration path filtering if available (preferred)
     if iteration_path:
-        # Use UNDER to include all child paths of the iteration node
+        # Use exact match for iteration path
+        # Escape backslashes for WIQL query
+        escaped_path = iteration_path.replace('\\', '\\\\')
         wiql_query["query"] += f"""
-        AND [System.IterationPath] UNDER '{iteration_path}'
+        AND [System.IterationPath] = '{escaped_path}'
         """
-        print(f"   📋 Iteration path filtering (UNDER): {iteration_path}")
+        print(f"   📋 Iteration path filtering: {iteration_path}")
+        
+        # Also use date filtering as backup if available
         if sprint_start and sprint_end:
-            # Also log the dates for reference (but we're using iteration path)
             date_start = sprint_start.split('T', 1)[0] if sprint_start else None
             date_end = sprint_end.split('T', 1)[0] if sprint_end else None
             if date_start and date_end:
-                print(f"   📅 Sprint period: {date_start} to {date_end}")
+                wiql_query["query"] += f"""
+        AND [System.ChangedDate] >= '{date_start}'
+        AND [System.ChangedDate] <= '{date_end}'
+        """
+                print(f"   📅 Also using date filtering: {date_start} to {date_end}")
     elif sprint_start and sprint_end:
         # Add date range filtering as fallback (when no iteration path available)
         date_start = sprint_start.split('T', 1)[0]
@@ -352,12 +359,21 @@ def main():
                 if sprint_period.get('iteration_name'):
                     print(f"   📋 Iteration: {sprint_period['iteration_name']}")
             elif sprint_period and sprint_period.get('fallback'):
-                # Fallback: Use iteration_path from config (no dates, will use iteration path filtering)
+                # Fallback: Use calculated iteration path with date filtering if available
                 iteration_path = sprint_period.get('iteration_path') or project_config.get('iteration_path')
-                sprint_start_iso = None
-                sprint_end_iso = None
-                print(f"   ⚠️ Using fallback iteration path: {iteration_path}")
-                print(f"   ⚠️ Will filter by iteration path only (no date filtering)")
+                # Use date filtering as well if we have dates from fallback calculation
+                if sprint_period.get('start_datetime') and sprint_period.get('end_datetime'):
+                    sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
+                    sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')
+                    print(f"   ⚠️ Using fallback iteration path: {iteration_path}")
+                    print(f"   📅 Sprint Period: {sprint_period['start_date']} to {sprint_period['end_date']}")
+                    print(f"   📋 Iteration: {sprint_period.get('iteration_name', 'Unknown')}")
+                    print(f"   ⚠️ Will use BOTH iteration path and date filtering")
+                else:
+                    sprint_start_iso = None
+                    sprint_end_iso = None
+                    print(f"   ⚠️ Using fallback iteration path: {iteration_path}")
+                    print(f"   ⚠️ Will filter by iteration path only (no date filtering)")
             else:
                 # Fallback to config values if nothing works
                 sprint_period = Config.get_current_sprint_period()
