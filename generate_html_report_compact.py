@@ -14,10 +14,11 @@ def generate_compact_html_report(json_file):
         print(f"❌ Error loading JSON file: {e}")
         return None
     
-    # Resolve sprint period dynamically
-    sprint_period = Config.get_current_sprint_period()
-    sprint_start = sprint_period['start_date']
-    sprint_end = sprint_period['end_date']
+    # Resolve sprint period dynamically - get overall period for header
+    # Individual project periods will be shown in each project section
+    overall_sprint_period = Config.get_current_sprint_period()
+    sprint_start = overall_sprint_period['start_date']
+    sprint_end = overall_sprint_period['end_date']
     
     # Calculate global status summary
     global_status_counts = {}
@@ -114,8 +115,20 @@ def generate_compact_html_report(json_file):
         tags = project_config['tags'] if project_config else []
         tag_display = f"Filtered by: {', '.join(tags)}" if tags else "All work items"
         
-        # Get iteration display
-        iteration_display = project_config.get('iteration_display', 'Current Sprint') if project_config else "Current Sprint"
+        # Get iteration display - prefer from sprint_period in result data
+        if result.get('sprint_period'):
+            sprint_info = result['sprint_period']
+            if sprint_info.get('iteration_name'):
+                iteration_name = sprint_info['iteration_name']
+                start_date = sprint_info.get('start_date', '')
+                end_date = sprint_info.get('end_date', '')
+                iteration_display = f"{iteration_name} ({start_date} to {end_date})"
+            else:
+                start_date = sprint_info.get('start_date', '')
+                end_date = sprint_info.get('end_date', '')
+                iteration_display = f"Current Sprint ({start_date} to {end_date})"
+        else:
+            iteration_display = project_config.get('iteration_display', 'Current Sprint') if project_config else "Current Sprint"
         
         # Calculate status-level summary using abstraction mapping
         status_counts = {}
@@ -171,7 +184,7 @@ def generate_compact_html_report(json_file):
                         <td style="padding-bottom: 15px; border-bottom: 2px solid #0078d4;">
                             <h2 style="margin: 0 0 10px 0; color: #0078d4; font-size: 22px; font-weight: 600;" class="mobile-text">{display_name}</h2>
                             <div style="background: #e3f2fd; color: #1976d2; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; display: inline-block; margin-right: 10px; margin-bottom: 5px;" class="mobile-text">{tag_display}</div>
-                            <div style="background: #f3e5f5; color: #7b1fa2; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; display: inline-block;" class="mobile-text">{iteration_display}</div>
+                            <div style="background: #f3e5f5; color: #7b1fa2; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; display: inline-block; margin-bottom: 5px;" class="mobile-text">{iteration_display}</div>
                         </td>
                     </tr>
                     <tr>

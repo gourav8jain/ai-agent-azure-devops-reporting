@@ -4,6 +4,123 @@ import base64
 from datetime import datetime
 from config import Config
 
+def get_current_iteration(organization, project, team_name=None):
+    """Fetch the current iteration/sprint from Azure DevOps for a project"""
+    
+    if not Config.AZURE_DEVOPS_PAT:
+        return None
+    
+    # Encode PAT for Basic Auth
+    credentials = base64.b64encode(f":{Config.AZURE_DEVOPS_PAT}".encode()).decode()
+    headers = {
+        'Authorization': f'Basic {credentials}',
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        # First, get teams for the project
+        teams_url = f"https://dev.azure.com/{organization}/{project}/_apis/teams?api-version=7.0"
+        response = requests.get(teams_url, headers=headers)
+        response.raise_for_status()
+        teams_data = response.json()
+        teams = teams_data.get('value', [])
+        
+        # Find the team by name if provided
+        target_team = None
+        if team_name:
+            for team in teams:
+                if team.get('name') == team_name:
+                    target_team = team
+                    break
+        
+        # Use first team if no specific team found
+        if not target_team and teams:
+            target_team = teams[0]
+        
+        if not target_team:
+            print(f"   ⚠️ No team found for project {project}")
+            return None
+        
+        team_id = target_team.get('id')
+        
+        # Get iterations for the team
+        iterations_url = f"https://dev.azure.com/{organization}/{project}/{team_id}/_apis/work/teamsettings/iterations?api-version=7.0&$timeframe=current"
+        response = requests.get(iterations_url, headers=headers)
+        response.raise_for_status()
+        iterations_data = response.json()
+        iterations = iterations_data.get('value', [])
+        
+        # Find current iteration
+        today = datetime.now().date()
+        current_iteration = None
+        
+        for iteration in iterations:
+            attrs = iteration.get('attributes', {})
+            start_date = attrs.get('startDate')
+            end_date = attrs.get('finishDate')
+            
+            if start_date and end_date:
+                # Parse dates
+                if isinstance(start_date, str):
+                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
+                if isinstance(end_date, str):
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
+                
+                # Check if today is within this iteration
+                if start_date <= today <= end_date:
+                    current_iteration = {
+                        'id': iteration.get('id'),
+                        'name': iteration.get('name'),
+                        'path': iteration.get('path'),
+                        'start_date': attrs.get('startDate'),
+                        'end_date': attrs.get('finishDate')
+                    }
+                    break
+        
+        # If no current iteration found, try to get the most recent future iteration
+        if not current_iteration:
+            for iteration in sorted(iterations, key=lambda x: x.get('attributes', {}).get('startDate', '')):
+                attrs = iteration.get('attributes', {})
+                start_date = attrs.get('startDate')
+                
+                if start_date:
+                    if isinstance(start_date, str):
+                        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
+                    
+                    if start_date >= today:
+                        current_iteration = {
+                            'id': iteration.get('id'),
+                            'name': iteration.get('name'),
+                            'path': iteration.get('path'),
+                            'start_date': attrs.get('startDate'),
+                            'end_date': attrs.get('finishDate')
+                        }
+                        break
+        
+        # If still no iteration, get the first iteration available
+        if not current_iteration and iterations:
+            iteration = iterations[0]
+            attrs = iteration.get('attributes', {})
+            current_iteration = {
+                'id': iteration.get('id'),
+                'name': iteration.get('name'),
+                'path': iteration.get('path'),
+                'start_date': attrs.get('startDate'),
+                'end_date': attrs.get('finishDate')
+            }
+        
+        if current_iteration:
+            print(f"   ✅ Found current iteration: {current_iteration['name']} ({current_iteration.get('start_date')} to {current_iteration.get('end_date')})")
+        
+        return current_iteration
+        
+    except requests.exceptions.RequestException as e:
+        print(f"   ⚠️ Error fetching iteration from Azure DevOps: {str(e)}")
+        return None
+    except Exception as e:
+        print(f"   ⚠️ Unexpected error fetching iteration: {str(e)}")
+        return None
+
 def get_work_item_count(organization, project, tags=None, sprint_start=None, sprint_end=None, iteration_path=None):
     """Get work item count for a specific project and sprint period"""
     
@@ -159,12 +276,6 @@ def main():
         print("❌ Configuration validation failed")
         return
     
-    # Get current sprint period dynamically
-    sprint_period = Config.get_current_sprint_period()
-    sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
-    sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')
-    
-    print(f"📅 Current Sprint Period: {sprint_period['start_date']} to {sprint_period['end_date']}")
     print(f"📅 Sprint calculated based on current date: {datetime.now().strftime('%d-%b-%Y')}")
     
     # Get counts for each organization and project
@@ -180,12 +291,38 @@ def main():
             
             print(f"\n   📋 Processing project: {project_name}")
             
-            iteration_path = project_config['iteration_path']
+            # Get project-specific sprint period
+            sprint_period = Config.get_current_sprint_period(project_key)
+            
+            if sprint_period:
+                sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
+                sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')
+                iteration_path = sprint_period.get('iteration_path') or project_config.get('iteration_path')
+                
+                print(f"   📅 Sprint Period: {sprint_period['start_date']} to {sprint_period['end_date']}")
+                if sprint_period.get('iteration_name'):
+                    print(f"   📋 Iteration: {sprint_period['iteration_name']}")
+            else:
+                # Fallback to config values
+                sprint_period = Config.get_current_sprint_period()
+                sprint_start_iso = sprint_period.get('start_iso') or sprint_period['start_datetime'].strftime('%Y-%m-%dT00:00:00')
+                sprint_end_iso = sprint_period.get('end_iso') or sprint_period['end_datetime'].strftime('%Y-%m-%dT23:59:59')
+                iteration_path = project_config.get('iteration_path')
+                print(f"   ⚠️ Using default sprint period: {sprint_period['start_date']} to {sprint_period['end_date']}")
+            
             result = get_work_item_count(org_name, project_name, tags, sprint_start_iso, sprint_end_iso, iteration_path)
             
             if result:
                 # Store with organization prefix to avoid naming conflicts
                 project_key = f"{org_name}_{project_name}"
+                # Store sprint period info with the result
+                if sprint_period:
+                    result['sprint_period'] = {
+                        'start_date': sprint_period.get('start_date'),
+                        'end_date': sprint_period.get('end_date'),
+                        'iteration_name': sprint_period.get('iteration_name'),
+                        'iteration_path': sprint_period.get('iteration_path')
+                    }
                 all_results[project_key] = result
                 print(f"      ✅ {project_name}: {result['total_items']} work items")
             else:

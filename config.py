@@ -38,6 +38,7 @@ class Config:
                     'project_name': 'IOL Pay',  # Display name: IOL Pay
                     'team_name': 'Charlie Backend Team',
                     'tags': [],
+                    'sprint_duration_weeks': 3,  # IOL Pay has 3-week sprints
                     'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-28',  # Current sprint: Iteration-28
                     'iteration_display': 'Iteration-28 (Oct 14 - Nov 3)'  # Display with dates
                 }
@@ -50,6 +51,7 @@ class Config:
                     'project_name': 'VCCWallet',
                     'team_name': 'VCCWallet Team',
                     'tags': [],
+                    'sprint_duration_weeks': 2,  # VCC has 2-week sprints
                     'iteration_path': 'VCCWallet\\Sprint 11',  # Current sprint: Sprint-11
                     'iteration_display': 'Sprint-11 (Oct 14 - Oct 27)'  # Display with dates
                 }
@@ -70,24 +72,52 @@ class Config:
 
     # Sprint Period (Current Sprint - October 2024)
     @classmethod
-    def get_current_sprint_period(cls):
-        """Get the current sprint period based on provided sprint schedules.
+    def get_current_sprint_period(cls, project_key=None):
+        """Get the current sprint period for a specific project or all projects.
         
-        Current Sprint (October 2024):
-        - IOL Pay: Iteration-28 (Oct 14 - Nov 3, 3 weeks)
-        - VCC: Sprint-11 (October 14 - October 27, 2 weeks)
-        
-        Using the overlapping period: Oct 14 - Oct 27 (2 weeks)
+        If project_key is provided, returns sprint period for that project.
+        If not provided, returns a default period (for backward compatibility).
         """
-        # Current sprint dates based on provided information
-        sprint_start = datetime(2024, 10, 14)  # October 14, 2024
-        sprint_end = datetime(2024, 10, 27)    # October 27, 2024
-
+        if project_key:
+            # Get project-specific sprint period
+            return cls.get_project_sprint_period(project_key)
+        
+        # Default: Return earliest start and latest end across all projects
+        # This is used for backward compatibility
+        all_periods = []
+        for org_key, org_config in cls.ORGANIZATIONS.items():
+            for proj_key, proj_config in org_config['projects'].items():
+                period = cls.get_project_sprint_period(proj_key)
+                if period:
+                    all_periods.append(period)
+        
+        if all_periods:
+            earliest_start = min(p['start_datetime'] for p in all_periods)
+            latest_end = max(p['end_datetime'] for p in all_periods)
+            
+            start_date_str = earliest_start.strftime('%d-%b-%Y')
+            end_date_str = latest_end.strftime('%d-%b-%Y')
+            start_iso = earliest_start.strftime('%Y-%m-%dT00:00:00')
+            end_iso = latest_end.strftime('%Y-%m-%dT23:59:59')
+            
+            return {
+                'start_date': start_date_str,
+                'end_date': end_date_str,
+                'start_datetime': earliest_start,
+                'end_datetime': latest_end,
+                'start_iso': start_iso,
+                'end_iso': end_iso
+            }
+        
+        # Fallback to old hardcoded dates
+        sprint_start = datetime(2024, 10, 14)
+        sprint_end = datetime(2024, 10, 27)
+        
         start_date_str = sprint_start.strftime('%d-%b-%Y')
         end_date_str = sprint_end.strftime('%d-%b-%Y')
         start_iso = sprint_start.strftime('%Y-%m-%dT00:00:00')
         end_iso = sprint_end.strftime('%Y-%m-%dT23:59:59')
-
+        
         return {
             'start_date': start_date_str,
             'end_date': end_date_str,
@@ -96,6 +126,134 @@ class Config:
             'start_iso': start_iso,
             'end_iso': end_iso
         }
+    
+    @classmethod
+    def get_project_sprint_period(cls, project_key):
+        """Get sprint period for a specific project based on current iteration from Azure DevOps"""
+        # Find project configuration
+        project_config = None
+        for org_key, org_config in cls.ORGANIZATIONS.items():
+            if project_key in org_config['projects']:
+                project_config = org_config['projects'][project_key]
+                break
+        
+        if not project_config:
+            return None
+        
+        # Try to fetch current iteration from Azure DevOps
+        from get_sprint_count import get_current_iteration
+        
+        # Get organization and project details
+        org_name = None
+        for org_key, org_config in cls.ORGANIZATIONS.items():
+            if project_key in org_config['projects']:
+                org_name = org_config['name']
+                break
+        
+        if not org_name:
+            return None
+        
+        # Fetch current iteration
+        iteration_info = get_current_iteration(org_name, project_key, project_config.get('team_name'))
+        
+        if iteration_info and iteration_info.get('start_date') and iteration_info.get('end_date'):
+            # Use dates from Azure DevOps
+            start_date = iteration_info['start_date']
+            end_date = iteration_info['end_date']
+            
+            # Parse dates from Azure DevOps format (ISO 8601)
+            if isinstance(start_date, str):
+                # Handle both '2024-10-14T00:00:00Z' and '2024-10-14' formats
+                try:
+                    if 'T' in start_date:
+                        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                    else:
+                        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                except:
+                    start_date = datetime.strptime(start_date.split('T')[0], '%Y-%m-%d')
+                
+                # Convert to datetime object if it's a date
+                if hasattr(start_date, 'date'):
+                    start_date = datetime.combine(start_date.date(), datetime.min.time())
+            elif not isinstance(start_date, datetime):
+                # If it's already a date object, convert to datetime
+                start_date = datetime.combine(start_date, datetime.min.time())
+            
+            if isinstance(end_date, str):
+                try:
+                    if 'T' in end_date:
+                        end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                    else:
+                        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                except:
+                    end_date = datetime.strptime(end_date.split('T')[0], '%Y-%m-%d')
+                
+                if hasattr(end_date, 'date'):
+                    end_date = datetime.combine(end_date.date(), datetime.min.time())
+            elif not isinstance(end_date, datetime):
+                end_date = datetime.combine(end_date, datetime.min.time())
+            
+            start_date_str = start_date.strftime('%d-%b-%Y')
+            end_date_str = end_date.strftime('%d-%b-%Y')
+            start_iso = start_date.strftime('%Y-%m-%dT00:00:00')
+            end_iso = end_date.strftime('%Y-%m-%dT23:59:59')
+            
+            return {
+                'start_date': start_date_str,
+                'end_date': end_date_str,
+                'start_datetime': start_date,
+                'end_datetime': end_date,
+                'start_iso': start_iso,
+                'end_iso': end_iso,
+                'iteration_path': iteration_info.get('path'),
+                'iteration_name': iteration_info.get('name')
+            }
+        
+        # Fallback: Use iteration_path from config if available
+        iteration_path = project_config.get('iteration_path')
+        if iteration_path:
+            # Extract dates from iteration_display if available
+            iteration_display = project_config.get('iteration_display', '')
+            # Try to parse dates from iteration_display (e.g., "Iteration-28 (Oct 14 - Nov 3)")
+            import re
+            date_pattern = r'(\w{3})\s+(\d{1,2})\s+-\s+(\w{3})\s+(\d{1,2})'
+            match = re.search(date_pattern, iteration_display)
+            
+            if match:
+                # For now, use current date and calculate based on sprint duration
+                sprint_duration_weeks = project_config.get('sprint_duration_weeks', 2)
+                today = datetime.now()
+                
+                # Calculate sprint start (assuming sprints start on Monday)
+                days_since_monday = today.weekday()
+                sprint_start = today - timedelta(days=days_since_monday)
+                
+                # Adjust if we're past the middle of the sprint
+                sprint_duration_days = sprint_duration_weeks * 7
+                sprint_end = sprint_start + timedelta(days=sprint_duration_days - 1)
+                
+                # If today is past the sprint end, move to next sprint
+                if today > sprint_end:
+                    sprint_start = sprint_end + timedelta(days=1)
+                    sprint_end = sprint_start + timedelta(days=sprint_duration_days - 1)
+                
+                start_date_str = sprint_start.strftime('%d-%b-%Y')
+                end_date_str = sprint_end.strftime('%d-%b-%Y')
+                start_iso = sprint_start.strftime('%Y-%m-%dT00:00:00')
+                end_iso = sprint_end.strftime('%Y-%m-%dT23:59:59')
+                
+                return {
+                    'start_date': start_date_str,
+                    'end_date': end_date_str,
+                    'start_datetime': sprint_start,
+                    'end_datetime': sprint_end,
+                    'start_iso': start_iso,
+                    'end_iso': end_iso,
+                    'iteration_path': iteration_path,
+                    'iteration_name': iteration_path.split('\\')[-1]
+                }
+        
+        return None
     
     # Sprint Period (Dynamic - will be set by get_current_sprint_period)
     SPRINT_PERIOD = None
