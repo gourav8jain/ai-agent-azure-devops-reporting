@@ -200,25 +200,15 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
 
     # Use iteration path filtering if available (preferred)
     if iteration_path:
-        # Use exact match for iteration path
-        # Escape backslashes for WIQL query - Azure DevOps uses backslashes
-        escaped_path = iteration_path.replace('\\', '\\\\')
+        # Try exact match first - don't escape, use the path as-is
+        # Azure DevOps WIQL handles backslashes in iteration paths
         wiql_query["query"] += f"""
-        AND [System.IterationPath] = '{escaped_path}'
+        AND [System.IterationPath] = '{iteration_path}'
         """
         print(f"   📋 Iteration path filtering (exact match): {iteration_path}")
-        print(f"   📋 Escaped path for query: {escaped_path}")
         
-        # Also use date filtering as backup if available
-        if sprint_start and sprint_end:
-            date_start = sprint_start.split('T', 1)[0] if sprint_start else None
-            date_end = sprint_end.split('T', 1)[0] if sprint_end else None
-            if date_start and date_end:
-                wiql_query["query"] += f"""
-        AND [System.ChangedDate] >= '{date_start}'
-        AND [System.ChangedDate] <= '{date_end}'
-        """
-                print(f"   📅 Also using date filtering: {date_start} to {date_end}")
+        # Note: We don't use date filtering with iteration path
+        # The iteration path should be sufficient to get all work items in that sprint
     elif sprint_start and sprint_end:
         # Add date range filtering as fallback (when no iteration path available)
         date_start = sprint_start.split('T', 1)[0]
@@ -260,7 +250,30 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
         
         print(f"   📊 Found {len(work_item_ids)} work items")
         
+        # If no work items found with exact match and we have iteration path, try UNDER clause
+        if not work_item_ids and iteration_path:
+            print(f"   ⚠️ No work items found with exact match, trying UNDER clause...")
+            wiql_query_under = wiql_query.copy()
+            # Replace the iteration path condition with UNDER
+            original_query = wiql_query_under["query"]
+            # Remove the old iteration path condition
+            original_query = original_query.replace(f"AND [System.IterationPath] = '{iteration_path}'", "")
+            # Add UNDER clause
+            wiql_query_under["query"] = original_query + f"\n        AND [System.IterationPath] UNDER '{iteration_path}'"
+            print(f"   🔍 Trying WIQL Query with UNDER:")
+            print(f"      {wiql_query_under['query']}")
+            
+            try:
+                response_under = requests.post(wiql_url, headers=headers, json=wiql_query_under)
+                response_under.raise_for_status()
+                wiql_result_under = response_under.json()
+                work_item_ids = [item['id'] for item in wiql_result_under.get('workItems', [])]
+                print(f"   📊 Found {len(work_item_ids)} work items with UNDER clause")
+            except Exception as e:
+                print(f"   ⚠️ UNDER clause also failed: {str(e)}")
+        
         if not work_item_ids:
+            print(f"   ⚠️ No work items found for iteration: {iteration_path}")
             return {'total_items': 0, 'engineer_metrics': {}}
         
         # Get detailed work item information
@@ -268,6 +281,12 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
         
     except requests.exceptions.RequestException as e:
         print(f"   ❌ Error querying work items: {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_detail = e.response.json()
+                print(f"   ❌ Error details: {error_detail}")
+            except:
+                print(f"   ❌ Error response: {e.response.text}")
         return None
 
 def get_engineer_metrics(organization, project, work_item_ids, headers):
