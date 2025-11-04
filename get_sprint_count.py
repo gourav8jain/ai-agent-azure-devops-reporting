@@ -63,12 +63,16 @@ def get_current_iteration(organization, project, team_name=None):
         future_iterations = []
         
         # Parse and categorize all iterations
+        print(f"   📋 Processing {len(all_iterations)} iterations/sprints to find current one...")
         for iteration in all_iterations:
             attrs = iteration.get('attributes', {})
             start_date_str = attrs.get('startDate')
             end_date_str = attrs.get('finishDate')
+            iteration_name = iteration.get('name', 'Unknown')
+            iteration_path = iteration.get('path', 'Unknown')
             
             if not start_date_str or not end_date_str:
+                print(f"      ⚠️ Skipping {iteration_name} (missing dates)")
                 continue
             
             # Parse dates from Azure DevOps format
@@ -78,7 +82,8 @@ def get_current_iteration(organization, project, team_name=None):
                         start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')).date()
                     else:
                         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-                except:
+                except Exception as e:
+                    print(f"      ⚠️ Skipping {iteration_name} (date parse error: {e})")
                     continue
             else:
                 continue
@@ -89,7 +94,8 @@ def get_current_iteration(organization, project, team_name=None):
                         end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).date()
                     else:
                         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-                except:
+                except Exception as e:
+                    print(f"      ⚠️ Skipping {iteration_name} (end date parse error: {e})")
                     continue
             else:
                 continue
@@ -98,25 +104,32 @@ def get_current_iteration(organization, project, team_name=None):
             if start_date <= today <= end_date:
                 current_iteration = {
                     'id': iteration.get('id'),
-                    'name': iteration.get('name'),
-                    'path': iteration.get('path'),
+                    'name': iteration_name,
+                    'path': iteration_path,
                     'start_date': start_date_str,
                     'end_date': end_date_str
                 }
-                print(f"   ✅ Found current iteration: {current_iteration['name']} ({start_date} to {end_date})")
+                print(f"   ✅ Found CURRENT iteration: {iteration_name} ({start_date} to {end_date})")
+                print(f"      📋 Path: {iteration_path}")
                 break
             elif end_date < today:
                 past_iterations.append({
                     'iteration': iteration,
                     'end_date': end_date,
-                    'start_date': start_date
+                    'start_date': start_date,
+                    'name': iteration_name,
+                    'path': iteration_path
                 })
+                print(f"      📅 Past: {iteration_name} ({start_date} to {end_date})")
             elif start_date > today:
                 future_iterations.append({
                     'iteration': iteration,
                     'start_date': start_date,
-                    'end_date': end_date
+                    'end_date': end_date,
+                    'name': iteration_name,
+                    'path': iteration_path
                 })
+                print(f"      🔮 Future: {iteration_name} ({start_date} to {end_date})")
         
         # If no current iteration, use the most recent past iteration
         if not current_iteration:
@@ -133,6 +146,7 @@ def get_current_iteration(organization, project, team_name=None):
                     'end_date': attrs.get('finishDate')
                 }
                 print(f"   ⚠️ No active iteration found. Using most recent past iteration: {current_iteration['name']}")
+                print(f"      📋 Path: {current_iteration['path']}")
             elif future_iterations:
                 # If no past iterations, use the nearest future iteration
                 future_iterations.sort(key=lambda x: x['start_date'])
@@ -146,11 +160,12 @@ def get_current_iteration(organization, project, team_name=None):
                     'end_date': attrs.get('finishDate')
                 }
                 print(f"   ⚠️ No active iteration found. Using nearest future iteration: {current_iteration['name']}")
+                print(f"      📋 Path: {current_iteration['path']}")
         
         if not current_iteration:
             print(f"   ❌ No iteration found for team {target_team.get('name')}")
-        
-        return current_iteration
+        else:
+            print(f"   ✅ Selected iteration: {current_iteration['name']} (Path: {current_iteration['path']})")
         
     except requests.exceptions.RequestException as e:
         print(f"   ⚠️ Error fetching iteration from Azure DevOps: {str(e)}")
