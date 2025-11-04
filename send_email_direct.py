@@ -10,8 +10,47 @@ from config import Config
 # GitHub Actions will use repository secrets instead
 load_dotenv()
 
+def validate_html_has_data(html_content):
+    """Validate that HTML content contains actual sprint data (not just zeros)"""
+    # Check for empty data indicators in HTML
+    import re
+    
+    # Check if Total Work Items is 0
+    # Pattern: <h3>Total Work Items</h3> followed by <div>0</div>
+    work_items_match = re.search(r'Total Work Items.*?<div[^>]*>[\s]*(\d+)[\s]*</div>', html_content, re.DOTALL)
+    if work_items_match:
+        count = int(work_items_match.group(1))
+        if count == 0:
+            return False
+    
+    # Check if Projects count is 0
+    projects_match = re.search(r'Projects.*?<div[^>]*>[\s]*(\d+)[\s]*</div>', html_content, re.DOTALL)
+    if projects_match:
+        count = int(projects_match.group(1))
+        if count == 0:
+            return False
+    
+    # Check if Engineers count is 0
+    engineers_match = re.search(r'Engineers.*?<div[^>]*>[\s]*(\d+)[\s]*</div>', html_content, re.DOTALL)
+    if engineers_match:
+        count = int(engineers_match.group(1))
+        if count == 0:
+            return False
+    
+    # Check if there are any project sections with actual data
+    # Look for project sections that aren't just empty headers
+    if not re.search(r'<!-- Project Section:', html_content):
+        return False
+    
+    return True
+
 def send_email_directly(html_filename, html_content):
     """Send email directly using Gmail credentials from environment variables"""
+    
+    # Validate HTML content has data before sending
+    if not validate_html_has_data(html_content):
+        print("❌ HTML content contains no data (all zeros). Refusing to send empty email.")
+        return False
     
     # Get email configuration from Config
     EMAIL_FROM = Config.EMAIL_FROM
@@ -105,46 +144,133 @@ For full formatted report, please view this email in HTML format.
         
         return False
 
-def main():
-    """Main function to send email directly"""
-    print("📧 Direct Email Sender with Environment Variables")
-    print("=" * 60)
-    
+def find_non_empty_html_report():
+    """Find the most recent HTML report that has actual data"""
     # Find the most recent HTML report (prefer compact version)
     html_files = [f for f in os.listdir('.') if f.startswith('compact_sprint_report_') and f.endswith('.html')]
     if not html_files:
         # Fallback to regular sprint reports
         html_files = [f for f in os.listdir('.') if f.startswith('sprint_report_') and f.endswith('.html')]
     if not html_files:
-        print("❌ No HTML reports found. Generate a report first using generate_html_report.py")
+        return None, "No HTML reports found"
+    
+    # Sort by modification time (most recent first)
+    html_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    
+    # Try each HTML file until we find one with data
+    for html_file in html_files:
+        try:
+            with open(html_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            if validate_html_has_data(html_content):
+                return html_file, html_content
+        except Exception as e:
+            print(f"   ⚠️ Error reading {html_file}: {str(e)}")
+            continue
+    
+    return None, "No HTML reports with data found"
+
+def main():
+    """Main function to send email directly"""
+    print("📧 Direct Email Sender with Environment Variables")
+    print("=" * 60)
+    
+    # ALWAYS regenerate HTML from latest JSON to ensure fresh data
+    print("🔄 Regenerating HTML report from latest JSON data...")
+    
+    try:
+        from generate_html_report_compact import generate_compact_html_report
+        import json
+        
+        # Find latest JSON file
+        data_dir = 'data'
+        json_files = []
+        if os.path.exists(data_dir):
+            json_files = [f for f in os.listdir(data_dir) if f.startswith('sprint_count_') and f.endswith('.json')]
+        
+        # Also check current directory for backward compatibility
+        if not json_files:
+            json_files = [f for f in os.listdir('.') if f.startswith('sprint_count_') and f.endswith('.json')]
+            if json_files:
+                latest_json = max(json_files, key=lambda x: os.path.getmtime(x))
+                latest_json_path = latest_json
+            else:
+                print(f"❌ No JSON data files found. Run get_sprint_count.py first.")
+                return
+        else:
+            latest_json = max(json_files, key=lambda x: os.path.getmtime(os.path.join(data_dir, x)))
+            latest_json_path = os.path.join(data_dir, latest_json)
+        
+        # Check if JSON has data
+        with open(latest_json_path, 'r', encoding='utf-8') as f:
+            json_data = json.load(f)
+        
+        # Validate JSON has actual data (not empty dict or empty projects)
+        if not json_data:
+            print(f"❌ JSON file {latest_json} is empty. No sprint data available.")
+            return
+        
+        # Check if any project has work items
+        total_items = sum(result.get('total_items', 0) for result in json_data.values())
+        if total_items == 0:
+            print(f"❌ JSON file {latest_json} contains no work items (all zeros).")
+            print(f"💡 Please ensure sprint data is available in Azure DevOps.")
+            return
+        
+        print(f"📁 Found JSON data: {latest_json}")
+        print(f"📊 Total work items: {total_items}")
+        print(f"🔄 Generating HTML report...")
+        
+        html_content = generate_compact_html_report(latest_json_path)
+        
+        if not html_content:
+            print(f"❌ Failed to generate HTML report.")
+            return
+        
+        # Validate HTML content has data
+        if not validate_html_has_data(html_content):
+            print(f"❌ Generated HTML report contains no data (all zeros).")
+            print(f"💡 This might indicate a problem with the HTML generation.")
+            return
+        
+        # Save the regenerated HTML
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        html_file = f'compact_sprint_report_{timestamp}.html'
+        with open(html_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        print(f"✅ Generated HTML report: {html_file}")
+        
+    except FileNotFoundError as e:
+        print(f"❌ JSON file not found: {str(e)}")
+        print(f"💡 Please run get_sprint_count.py first to fetch sprint data.")
+        return
+    except json.JSONDecodeError as e:
+        print(f"❌ Invalid JSON file: {str(e)}")
+        return
+    except Exception as e:
+        print(f"❌ Error generating report: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return
     
-    latest_report = max(html_files, key=lambda x: os.path.getctime(x))
-    print(f"📁 Using report: {latest_report}")
+    print(f"📁 Using report: {html_file}")
     
-    # Read the HTML content
-    try:
-        with open(latest_report, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        
-        print(f"\n📧 Email Details:")
-        print(f"   Subject: Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')} - IOL Pay & VCC")
-        print(f"   Content: HTML report in email body")
-        print(f"   Size: {len(html_content)} characters")
-        
-        # Send the email
-        success = send_email_directly(latest_report, html_content)
-        
-        if success:
-            print(f"\n🎉 Email sent successfully!")
-            print(f"📧 Check your email at: {os.getenv('EMAIL_TO', 'your email')}")
-            print(f"💻 The HTML report is now in the email body!")
-        else:
-            print(f"\n❌ Email sending failed.")
-            print(f"💡 Please check your environment variables and try again.")
-            
-    except Exception as e:
-        print(f"❌ Error reading HTML report: {str(e)}")
+    print(f"\n📧 Email Details:")
+    print(f"   Subject: Sprint Report - Daily - {datetime.now().strftime('%B %d, %Y')} - IOL Pay & VCC")
+    print(f"   Content: HTML report in email body")
+    print(f"   Size: {len(html_content)} characters")
+    
+    # Send the email
+    success = send_email_directly(html_file, html_content)
+    
+    if success:
+        print(f"\n🎉 Email sent successfully!")
+        print(f"📧 Check your email at: {os.getenv('EMAIL_TO', 'your email')}")
+        print(f"💻 The HTML report is now in the email body!")
+    else:
+        print(f"\n❌ Email sending failed.")
+        print(f"💡 Please check your environment variables and try again.")
 
 if __name__ == "__main__":
     main()

@@ -17,12 +17,26 @@ def run_command(command, description):
         if result.returncode == 0:
             print(f"✅ {description} successful")
             if result.stdout.strip():
-                print(f"   Output: {result.stdout.strip()}")
+                # Print output line by line for better readability
+                output_lines = result.stdout.strip().split('\n')
+                for line in output_lines:
+                    if line.strip():
+                        print(f"   {line}")
             return True
         else:
             print(f"❌ {description} failed")
+            if result.stdout.strip():
+                # Print stdout even on failure (may contain useful info)
+                output_lines = result.stdout.strip().split('\n')
+                for line in output_lines:
+                    if line.strip():
+                        print(f"   {line}")
             if result.stderr.strip():
-                print(f"   Error: {result.stderr.strip()}")
+                # Print stderr
+                error_lines = result.stderr.strip().split('\n')
+                for line in error_lines:
+                    if line.strip():
+                        print(f"   ERROR: {line}")
             return False
     except Exception as e:
         print(f"❌ {description} failed with exception: {str(e)}")

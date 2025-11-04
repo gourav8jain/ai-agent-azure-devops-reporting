@@ -14,6 +14,28 @@ def generate_compact_html_report(json_file):
         print(f"❌ Error loading JSON file: {e}")
         return None
     
+    # Validate sprint_data is not empty
+    if not sprint_data:
+        print(f"❌ JSON file contains no sprint data")
+        return None
+    
+    # Validate sprint_data structure and check for actual work items
+    total_work_items = 0
+    for project_key, result in sprint_data.items():
+        if not isinstance(result, dict):
+            print(f"❌ Invalid data structure for project {project_key}")
+            return None
+        if 'total_items' not in result or 'engineer_metrics' not in result:
+            print(f"❌ Missing required fields in project {project_key}")
+            return None
+        total_work_items += result.get('total_items', 0)
+    
+    if total_work_items == 0:
+        print(f"❌ JSON file contains no work items (all zeros)")
+        return None
+    
+    print(f"✅ Loaded sprint data: {len(sprint_data)} projects, {total_work_items} total work items")
+    
     # Resolve sprint period dynamically - get overall period for header
     # Individual project periods will be shown in each project section
     overall_sprint_period = Config.get_current_sprint_period()
