@@ -201,12 +201,13 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
     # Use iteration path filtering if available (preferred)
     if iteration_path:
         # Use exact match for iteration path
-        # Escape backslashes for WIQL query
+        # Escape backslashes for WIQL query - Azure DevOps uses backslashes
         escaped_path = iteration_path.replace('\\', '\\\\')
         wiql_query["query"] += f"""
         AND [System.IterationPath] = '{escaped_path}'
         """
-        print(f"   📋 Iteration path filtering: {iteration_path}")
+        print(f"   📋 Iteration path filtering (exact match): {iteration_path}")
+        print(f"   📋 Escaped path for query: {escaped_path}")
         
         # Also use date filtering as backup if available
         if sprint_start and sprint_end:
@@ -245,6 +246,10 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
 
     # Execute WIQL query
     wiql_url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/wiql?api-version=7.0"
+    
+    # Print the full query for debugging
+    print(f"   🔍 Full WIQL Query:")
+    print(f"      {wiql_query['query']}")
     
     try:
         response = requests.post(wiql_url, headers=headers, json=wiql_query)
