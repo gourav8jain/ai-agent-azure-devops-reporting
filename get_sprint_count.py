@@ -18,15 +18,42 @@ def get_current_iteration(organization, project, team_name=None):
     }
     
     try:
-        # First, get teams for the project
-        teams_url = f"https://dev.azure.com/{organization}/{project}/_apis/teams?api-version=7.0"
-        response = requests.get(teams_url, headers=headers)
-        response.raise_for_status()
-        teams_data = response.json()
-        teams = teams_data.get('value', [])
+        # First, get teams for the project - try multiple API endpoints
+        teams = []
+        target_team = None
+        
+        # Try Core API first (more reliable)
+        try:
+            core_teams_url = f"https://dev.azure.com/{organization}/_apis/projects/{project}/teams?api-version=7.0"
+            response = requests.get(core_teams_url, headers=headers)
+            response.raise_for_status()
+            teams_data = response.json()
+            teams = teams_data.get('value', [])
+            print(f"   ✅ Found {len(teams)} teams via Core API")
+        except requests.exceptions.RequestException as e:
+            print(f"   ⚠️ Core API failed: {str(e)}")
+            # Fallback to project-scoped teams API
+            try:
+                teams_url = f"https://dev.azure.com/{organization}/{project}/_apis/teams?api-version=7.0"
+                response = requests.get(teams_url, headers=headers)
+                response.raise_for_status()
+                teams_data = response.json()
+                teams = teams_data.get('value', [])
+                print(f"   ✅ Found {len(teams)} teams via Teams API")
+            except requests.exceptions.RequestException as e2:
+                print(f"   ⚠️ Teams API also failed: {str(e2)}")
+                # Last resort: try to get default team
+                try:
+                    default_team_url = f"https://dev.azure.com/{organization}/{project}/_apis/core/teams?api-version=7.0"
+                    response = requests.get(default_team_url, headers=headers)
+                    if response.status_code == 200:
+                        teams_data = response.json()
+                        teams = teams_data.get('value', [])
+                        print(f"   ✅ Found {len(teams)} teams via Core Teams API")
+                except:
+                    pass
         
         # Find the team by name if provided
-        target_team = None
         if team_name:
             for team in teams:
                 if team.get('name') == team_name:
@@ -39,9 +66,11 @@ def get_current_iteration(organization, project, team_name=None):
         
         if not target_team:
             print(f"   ⚠️ No team found for project {project}")
+            print(f"   💡 Will use fallback iteration path from configuration")
             return None
         
         team_id = target_team.get('id')
+        print(f"   ✅ Using team: {target_team.get('name')} (ID: {team_id})")
         
         # Get ALL iterations for the team (not just current)
         iterations_url = f"https://dev.azure.com/{organization}/{project}/{team_id}/_apis/work/teamsettings/iterations?api-version=7.0"
@@ -207,8 +236,15 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
         """
         print(f"   📋 Iteration path filtering (exact match): {iteration_path}")
         
-        # Note: We don't use date filtering with iteration path
-        # The iteration path should be sufficient to get all work items in that sprint
+        # If we also have date range, add it as additional filter for safety
+        if sprint_start and sprint_end:
+            date_start = sprint_start.split('T', 1)[0]
+            date_end = sprint_end.split('T', 1)[0]
+            wiql_query["query"] += f"""
+        AND [System.ChangedDate] >= '{date_start}'
+        AND [System.ChangedDate] <= '{date_end}'
+        """
+            print(f"   📅 Also using date filtering: {date_start} to {date_end}")
     elif sprint_start and sprint_end:
         # Add date range filtering as fallback (when no iteration path available)
         date_start = sprint_start.split('T', 1)[0]
@@ -258,6 +294,9 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
             original_query = wiql_query_under["query"]
             # Remove the old iteration path condition
             original_query = original_query.replace(f"AND [System.IterationPath] = '{iteration_path}'", "")
+            # Remove date filters if present (to make UNDER work better)
+            import re
+            original_query = re.sub(r'AND \[System\.ChangedDate\].*?\n', '', original_query)
             # Add UNDER clause
             wiql_query_under["query"] = original_query + f"\n        AND [System.IterationPath] UNDER '{iteration_path}'"
             print(f"   🔍 Trying WIQL Query with UNDER:")
@@ -272,21 +311,98 @@ def get_work_item_count(organization, project, tags=None, sprint_start=None, spr
             except Exception as e:
                 print(f"   ⚠️ UNDER clause also failed: {str(e)}")
         
+        # If still no work items and we have iteration path, try date-only filtering as fallback
+        if not work_item_ids and iteration_path and sprint_start and sprint_end:
+            print(f"   ⚠️ Iteration path '{iteration_path}' may not exist, trying date-only filtering...")
+            date_start = sprint_start.split('T', 1)[0]
+            date_end = sprint_end.split('T', 1)[0]
+            wiql_query_date = {
+                'query': f"""
+        SELECT [System.Id]
+        FROM WorkItems 
+        WHERE [System.TeamProject] = @project
+        AND [System.ChangedDate] >= '{date_start}'
+        AND [System.ChangedDate] <= '{date_end}'
+        """
+            }
+            if tags:
+                tag_conditions = []
+                for tag in tags:
+                    tag_conditions.append(f"[System.Tags] CONTAINS WORDS '{tag}'")
+                if tag_conditions:
+                    wiql_query_date["query"] += f" AND ({' OR '.join(tag_conditions)})"
+            
+            try:
+                response_date = requests.post(wiql_url, headers=headers, json=wiql_query_date)
+                response_date.raise_for_status()
+                wiql_result_date = response_date.json()
+                work_item_ids = [item['id'] for item in wiql_result_date.get('workItems', [])]
+                print(f"   📊 Found {len(work_item_ids)} work items with date-only filtering")
+            except Exception as e:
+                print(f"   ⚠️ Date-only filtering also failed: {str(e)}")
+        
         if not work_item_ids:
-            print(f"   ⚠️ No work items found for iteration: {iteration_path}")
+            if iteration_path:
+                print(f"   ⚠️ No work items found for iteration path: {iteration_path}")
+                print(f"   💡 The iteration path may not exist in Azure DevOps. Please verify it exists.")
+            else:
+                print(f"   ⚠️ No work items found for the specified criteria")
             return {'total_items': 0, 'engineer_metrics': {}}
         
         # Get detailed work item information
         return get_engineer_metrics(organization, project, work_item_ids, headers)
         
     except requests.exceptions.RequestException as e:
-        print(f"   ❌ Error querying work items: {str(e)}")
+        error_message = str(e)
+        error_response = None
+        
         if hasattr(e, 'response') and e.response is not None:
             try:
-                error_detail = e.response.json()
-                print(f"   ❌ Error details: {error_detail}")
+                error_response = e.response.json()
+                error_message_detail = error_response.get('message', '')
+                # Check if it's an iteration path error
+                if 'iteration path does not exist' in error_message_detail.lower() or 'TF51011' in str(error_response):
+                    print(f"   ⚠️ Iteration path does not exist: {iteration_path}")
+                    # Try date-only filtering as fallback
+                    if iteration_path and sprint_start and sprint_end:
+                        print(f"   💡 Falling back to date-only filtering...")
+                        date_start = sprint_start.split('T', 1)[0]
+                        date_end = sprint_end.split('T', 1)[0]
+                        wiql_query_date = {
+                            'query': f"""
+        SELECT [System.Id]
+        FROM WorkItems 
+        WHERE [System.TeamProject] = @project
+        AND [System.ChangedDate] >= '{date_start}'
+        AND [System.ChangedDate] <= '{date_end}'
+        """
+                        }
+                        if tags:
+                            tag_conditions = []
+                            for tag in tags:
+                                tag_conditions.append(f"[System.Tags] CONTAINS WORDS '{tag}'")
+                            if tag_conditions:
+                                wiql_query_date["query"] += f" AND ({' OR '.join(tag_conditions)})"
+                        
+                        try:
+                            response_date = requests.post(wiql_url, headers=headers, json=wiql_query_date)
+                            response_date.raise_for_status()
+                            wiql_result_date = response_date.json()
+                            work_item_ids = [item['id'] for item in wiql_result_date.get('workItems', [])]
+                            print(f"   ✅ Found {len(work_item_ids)} work items using date-only filtering")
+                            if work_item_ids:
+                                return get_engineer_metrics(organization, project, work_item_ids, headers)
+                        except Exception as e2:
+                            print(f"   ⚠️ Date-only fallback also failed: {str(e2)}")
+                    return {'total_items': 0, 'engineer_metrics': {}}
             except:
-                print(f"   ❌ Error response: {e.response.text}")
+                pass
+        
+        print(f"   ❌ Error querying work items: {error_message}")
+        if error_response:
+            print(f"   ❌ Error details: {error_response}")
+        elif hasattr(e, 'response') and e.response is not None:
+            print(f"   ❌ Error response: {e.response.text}")
         return None
 
 def get_engineer_metrics(organization, project, work_item_ids, headers):

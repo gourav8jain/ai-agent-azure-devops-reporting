@@ -255,7 +255,62 @@ class Config:
                 'iteration_name': iteration_info.get('name')
             }
         
-        # Fallback: derive current iteration from configured cadence (anchor, duration, number)
+        # Fallback: First try to use the configured iteration_path directly (most reliable)
+        iteration_path = project_config.get('iteration_path')
+        if iteration_path:
+            # Try to derive dates from cadence if available, otherwise use configured dates
+            cadence = project_config.get('fallback_cadence')
+            if cadence:
+                try:
+                    anchor_start = datetime.strptime(cadence['anchor_start'], '%Y-%m-%d')
+                    duration_days = int(cadence['duration_weeks']) * 7
+                    name_prefix = cadence.get('name_prefix', '')
+                    anchor_number = int(cadence['anchor_number'])
+                    
+                    # Extract iteration number from configured path
+                    iteration_name_from_path = iteration_path.split('\\')[-1]
+                    # Try to extract number from iteration name (e.g., "Iteration-29" -> 29)
+                    try:
+                        if name_prefix and iteration_name_from_path.startswith(name_prefix):
+                            configured_number = int(iteration_name_from_path.replace(name_prefix, ''))
+                        else:
+                            # Fallback: try to extract any number
+                            import re
+                            numbers = re.findall(r'\d+', iteration_name_from_path)
+                            configured_number = int(numbers[-1]) if numbers else anchor_number
+                    except:
+                        configured_number = anchor_number
+                    
+                    # Calculate dates based on configured iteration number
+                    n = configured_number - anchor_number
+                    current_start = anchor_start + timedelta(days=n * duration_days)
+                    current_end = current_start + timedelta(days=duration_days - 1)
+                    
+                    # Only use calculated dates if they're reasonable (not too far in future/past)
+                    today = datetime.now().date()
+                    if current_start.date() <= today + timedelta(days=90):  # Within 90 days
+                        return {
+                            'start_date': current_start.strftime('%d-%b-%Y'),
+                            'end_date': current_end.strftime('%d-%b-%Y'),
+                            'start_datetime': current_start,
+                            'end_datetime': current_end,
+                            'start_iso': current_start.strftime('%Y-%m-%dT00:00:00'),
+                            'end_iso': current_end.strftime('%Y-%m-%dT23:59:59'),
+                            'iteration_path': iteration_path,
+                            'iteration_name': iteration_name_from_path,
+                            'fallback': True
+                        }
+                except Exception as e:
+                    print(f"   ⚠️ Error calculating dates from cadence: {e}")
+            
+            # If cadence calculation failed or dates are unreasonable, just use the path
+            return {
+                'iteration_path': iteration_path,
+                'iteration_name': iteration_path.split('\\')[-1],
+                'fallback': True
+            }
+        
+        # Last resort: derive current iteration from configured cadence (only if no path configured)
         cadence = project_config.get('fallback_cadence')
         if cadence:
             try:
@@ -294,15 +349,6 @@ class Config:
                 }
             except Exception:
                 pass
-        
-        # Last resort: use static iteration_path if present
-        iteration_path = project_config.get('iteration_path')
-        if iteration_path:
-            return {
-                'iteration_path': iteration_path,
-                'iteration_name': iteration_path.split('\\')[-1],
-                'fallback': True
-            }
         
         return None
     
