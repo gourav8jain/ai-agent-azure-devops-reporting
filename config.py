@@ -39,13 +39,13 @@ class Config:
                     'team_name': 'Charlie Backend Team',
                     'tags': [],
                     'sprint_duration_weeks': 3,  # IOL Pay has 3-week sprints
-                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-28',  # Current sprint: Iteration-28
-                    'iteration_display': 'Iteration-28 (Oct 14 - Nov 3)',  # Display with dates
+                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-29',  # Current sprint: Iteration-29
+                    'iteration_display': 'Iteration-29 (Nov 4 - Nov 24)',  # Display with dates
                     # Fallback cadence (used only if Azure DevOps API is unavailable)
-                    # Anchor: Iteration-28 starting Oct 14, 2024, 3-week cadence
+                    # Anchor: Iteration-29 starting Nov 4, 2024, 3-week cadence
                     'fallback_cadence': {
-                        'anchor_start': '2024-10-14',
-                        'anchor_number': 28,
+                        'anchor_start': '2024-11-04',
+                        'anchor_number': 29,
                         'duration_weeks': 3,
                         'name_prefix': 'Iteration-'
                     }
@@ -60,8 +60,8 @@ class Config:
                     'team_name': 'VCCWallet Team',
                     'tags': [],
                     'sprint_duration_weeks': 2,  # VCC has 2-week sprints
-                    'iteration_path': 'VCCWallet\\Sprint 11',  # Current sprint: Sprint-11
-                    'iteration_display': 'Sprint-11 (Oct 14 - Oct 27)',  # Display with dates
+                    'iteration_path': 'VCCWallet\\Sprint 12',  # Current sprint: Sprint-12
+                    'iteration_display': 'Sprint-12 (Oct 28 - Nov 10)',  # Display with dates
                     # Fallback cadence (used only if Azure DevOps API is unavailable)
                     # Anchor: Sprint 12 starting Oct 28, 2024, 2-week cadence
                     'fallback_cadence': {
