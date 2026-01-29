@@ -39,7 +39,7 @@ class Config:
                     'team_name': 'Charlie Backend Team',
                     'tags': [],
                     'sprint_duration_weeks': 3,  # IOL Pay has 3-week sprints
-                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-29',  # Current sprint: Iteration-29
+                    'iteration_path': 'IOL_X\\Charlie Backend Team Backlog\\Iteration-29',  # Base path; last segment auto-updated when API unavailable
                     'iteration_display': 'Iteration-29 (Nov 4 - Nov 24)',  # Display with dates
                     # Fallback cadence (used only if Azure DevOps API is unavailable)
                     # Anchor: Iteration-29 starting Nov 4, 2024, 3-week cadence
@@ -60,7 +60,7 @@ class Config:
                     'team_name': 'VCCWallet Team',
                     'tags': [],
                     'sprint_duration_weeks': 2,  # VCC has 2-week sprints
-                    'iteration_path': 'VCCWallet\\Sprint 12',  # Current sprint: Sprint-12
+                    'iteration_path': 'VCCWallet\\Sprint 12',  # Base path; last segment auto-updated when API unavailable
                     'iteration_display': 'Sprint-12 (Oct 28 - Nov 10)',  # Display with dates
                     # Fallback cadence (used only if Azure DevOps API is unavailable)
                     # Anchor: Sprint 12 starting Oct 28, 2024, 2-week cadence
@@ -255,87 +255,30 @@ class Config:
                 'iteration_name': iteration_info.get('name')
             }
         
-        # Fallback: First try to use the configured iteration_path directly (most reliable)
-        iteration_path = project_config.get('iteration_path')
-        if iteration_path:
-            # Try to derive dates from cadence if available, otherwise use configured dates
-            cadence = project_config.get('fallback_cadence')
-            if cadence:
-                try:
-                    anchor_start = datetime.strptime(cadence['anchor_start'], '%Y-%m-%d')
-                    duration_days = int(cadence['duration_weeks']) * 7
-                    name_prefix = cadence.get('name_prefix', '')
-                    anchor_number = int(cadence['anchor_number'])
-                    
-                    # Extract iteration number from configured path
-                    iteration_name_from_path = iteration_path.split('\\')[-1]
-                    # Try to extract number from iteration name (e.g., "Iteration-29" -> 29)
-                    try:
-                        if name_prefix and iteration_name_from_path.startswith(name_prefix):
-                            configured_number = int(iteration_name_from_path.replace(name_prefix, ''))
-                        else:
-                            # Fallback: try to extract any number
-                            import re
-                            numbers = re.findall(r'\d+', iteration_name_from_path)
-                            configured_number = int(numbers[-1]) if numbers else anchor_number
-                    except:
-                        configured_number = anchor_number
-                    
-                    # Calculate dates based on configured iteration number
-                    n = configured_number - anchor_number
-                    current_start = anchor_start + timedelta(days=n * duration_days)
-                    current_end = current_start + timedelta(days=duration_days - 1)
-                    
-                    # Only use calculated dates if they're reasonable (not too far in future/past)
-                    today = datetime.now().date()
-                    if current_start.date() <= today + timedelta(days=90):  # Within 90 days
-                        return {
-                            'start_date': current_start.strftime('%d-%b-%Y'),
-                            'end_date': current_end.strftime('%d-%b-%Y'),
-                            'start_datetime': current_start,
-                            'end_datetime': current_end,
-                            'start_iso': current_start.strftime('%Y-%m-%dT00:00:00'),
-                            'end_iso': current_end.strftime('%Y-%m-%dT23:59:59'),
-                            'iteration_path': iteration_path,
-                            'iteration_name': iteration_name_from_path,
-                            'fallback': True
-                        }
-                except Exception as e:
-                    print(f"   ⚠️ Error calculating dates from cadence: {e}")
-            
-            # If cadence calculation failed or dates are unreasonable, just use the path
-            return {
-                'iteration_path': iteration_path,
-                'iteration_name': iteration_path.split('\\')[-1],
-                'fallback': True
-            }
-        
-        # Last resort: derive current iteration from configured cadence (only if no path configured)
+        # Fallback: compute the sprint in which the current date lies, using cadence.
+        # Use configured iteration_path only as a base template (replace last segment with current iteration).
         cadence = project_config.get('fallback_cadence')
+        base_iteration_path = project_config.get('iteration_path')
         if cadence:
             try:
                 anchor_start = datetime.strptime(cadence['anchor_start'], '%Y-%m-%d')
                 duration_days = int(cadence['duration_weeks']) * 7
                 name_prefix = cadence.get('name_prefix', '')
                 anchor_number = int(cadence['anchor_number'])
-                
                 today = datetime.now()
-                # Number of complete durations since anchor
+                # Sprint in which current date lies: find n such that today is in [anchor + n*duration, anchor + (n+1)*duration - 1]
                 delta_days = (today.date() - anchor_start.date()).days
                 n = max(0, delta_days // duration_days)
                 current_start = anchor_start + timedelta(days=n * duration_days)
                 current_end = current_start + timedelta(days=duration_days - 1)
                 current_number = anchor_number + n
                 iteration_name = f"{name_prefix}{current_number}"
-                
-                # Build iteration_path by replacing the last segment with iteration_name if possible
-                base_iteration_path = project_config.get('iteration_path')
+                # Build full iteration_path from base (e.g. IOL_X\...\Iteration-29 -> IOL_X\...\Iteration-32)
                 iteration_path = None
                 if base_iteration_path and '\\' in base_iteration_path:
                     parts = base_iteration_path.split('\\')
                     parts[-1] = iteration_name
                     iteration_path = '\\'.join(parts)
-                
                 return {
                     'start_date': current_start.strftime('%d-%b-%Y'),
                     'end_date': current_end.strftime('%d-%b-%Y'),
@@ -347,9 +290,15 @@ class Config:
                     'iteration_name': iteration_name,
                     'fallback': True
                 }
-            except Exception:
-                pass
-        
+            except Exception as e:
+                print(f"   ⚠️ Error computing sprint from cadence: {e}")
+        # If no cadence or calculation failed, use configured path as-is
+        if base_iteration_path:
+            return {
+                'iteration_path': base_iteration_path,
+                'iteration_name': base_iteration_path.split('\\')[-1],
+                'fallback': True
+            }
         return None
     
     # Sprint Period (Dynamic - will be set by get_current_sprint_period)
