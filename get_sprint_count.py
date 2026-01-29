@@ -146,7 +146,7 @@ def get_current_iteration(organization, project, team_name=None):
             print(f"   ⚠️ No iteration contains current date ({today}). Will use cadence fallback if configured.")
         else:
             print(f"   ✅ Selected iteration: {current_iteration['name']} (Path: {current_iteration['path']})")
-        
+        return current_iteration
     except requests.exceptions.RequestException as e:
         print(f"   ⚠️ Error fetching iteration from Azure DevOps: {str(e)}")
         return None

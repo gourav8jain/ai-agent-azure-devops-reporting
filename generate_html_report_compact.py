@@ -36,11 +36,21 @@ def generate_compact_html_report(json_file):
     
     print(f"✅ Loaded sprint data: {len(sprint_data)} projects, {total_work_items} total work items")
     
-    # Resolve sprint period dynamically - get overall period for header
-    # Individual project periods will be shown in each project section
-    overall_sprint_period = Config.get_current_sprint_period()
-    sprint_start = overall_sprint_period['start_date']
-    sprint_end = overall_sprint_period['end_date']
+    # Use sprint period from loaded JSON so header matches the data in the report
+    periods = [r.get('sprint_period') for r in sprint_data.values() if r.get('sprint_period') and r['sprint_period'].get('start_date') and r['sprint_period'].get('end_date')]
+    if periods:
+        try:
+            parsed_starts = [datetime.strptime(p['start_date'], '%d-%b-%Y') for p in periods]
+            parsed_ends = [datetime.strptime(p['end_date'], '%d-%b-%Y') for p in periods]
+            sprint_start = min(parsed_starts).strftime('%d-%b-%Y')
+            sprint_end = max(parsed_ends).strftime('%d-%b-%Y')
+        except (ValueError, TypeError):
+            sprint_start = periods[0]['start_date']
+            sprint_end = max(p['end_date'] for p in periods)
+    else:
+        overall_sprint_period = Config.get_current_sprint_period()
+        sprint_start = overall_sprint_period.get('start_date', '')
+        sprint_end = overall_sprint_period.get('end_date', '')
     
     # Calculate global status summary
     global_status_counts = {}
